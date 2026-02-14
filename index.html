@@ -3,22 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v6.5</title>
+    <title>NEON SHOOTER v7.0 - FINAL MASTER</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100svh; 
+            overflow: hidden; background: #000; touch-action: none;
+            overscroll-behavior: none; /* 모바일 새로고침 방지 */
+        }
         canvas { display: block; width: 100%; height: 100%; }
         
         #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; font-family: 'Arial Black', sans-serif; }
-        .hud { padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; color: var(--mint); }
-        .score-val { font-size: 1.5rem; text-shadow: 0 0 15px var(--mint); transition: transform 0.1s; display: inline-block; }
+        .hud { padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; }
+        .hud div { color: var(--mint); font-size: 1.3rem; text-shadow: 0 0 10px var(--mint); transition: all 0.1s; }
         
-        #boss-ui { position: absolute; top: 10%; left: 50%; transform: translateX(-50%); width: 85%; display: none; text-align: center; }
-        .boss-warning { color: var(--pink); font-size: 1.8rem; font-weight: 900; text-shadow: 0 0 20px var(--pink); animation: blink 0.4s infinite; }
-        .hp-container { height: 15px; background: rgba(255, 0, 255, 0.1); border: 2px solid var(--pink); border-radius: 10px; margin-top: 10px; overflow: hidden; }
-        #hp-bar { height: 100%; background: linear-gradient(90deg, #ff00ff, #fff); width: 100%; transition: width 0.15s; }
+        #boss-ui { 
+            position: absolute; top: 12%; left: 50%; transform: translateX(-50%); 
+            width: 85%; display: none; text-align: center; 
+        }
+        .boss-warning { 
+            color: var(--pink); font-size: 1.8rem; font-weight: 900; 
+            text-shadow: 0 0 20px var(--pink); animation: blink 0.3s infinite; 
+        }
+        .hp-container { 
+            height: 16px; background: rgba(0,0,0,0.7); border: 2px solid var(--pink); 
+            border-radius: 8px; margin-top: 12px; overflow: hidden; 
+        }
+        #hp-bar { height: 100%; background: linear-gradient(90deg, var(--pink), #fff); width: 100%; transition: width 0.1s linear; }
         
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     </style>
 </head>
 <body>
@@ -27,11 +40,11 @@
 
 <div id="ui-layer">
     <div class="hud">
-        <div>SCORE: <span id="score" class="score-val">0</span></div>
-        <div style="color: #ff3333; text-shadow: 0 0 10px #ff3333;">HP: <span id="hp">100</span></div>
+        <div id="score-display">SCORE: 0</div>
+        <div id="hp-display" style="color: #ff3333; text-shadow: 0 0 10px #ff3333;">HP: 100</div>
     </div>
     <div id="boss-ui">
-        <div class="boss-warning">BOSS OVERDRIVE</div>
+        <div class="boss-warning">CRITICAL: BOSS DETECTED</div>
         <div class="hp-container"><div id="hp-bar"></div></div>
     </div>
 </div>
@@ -44,95 +57,110 @@
     assets.bg.src = 'assets/bg_night.png';
     assets.player.src = 'assets/player.png';
 
-    let width, height, player, bullets = [], enemies = [], stars = [], explosions = [];
-    let score = 0, hp = 100, frame = 0, boss = null, shake = 0;
+    let width, height, player, bullets = [], enemies = [], stars = [], frame = 0;
+    let score = 0, hp = 100, boss = null, shake = 0, gameActive = true;
 
     function init() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
-        player = { x: width/2, y: height-150, tx: width/2, ty: height-150, vx: 0, vy: 0 };
-        // 터널 효과용 파티클
-        stars = Array(50).fill().map(() => ({
-            x: Math.random() * width - width/2,
-            y: Math.random() * height - height/2,
-            z: Math.random() * width,
-            pz: 0
+        player = { x: width/2, y: height-150, tx: width/2, ty: height-150, size: 40 };
+        // 3단계 심도 파티클
+        stars = Array(60).fill().map(() => ({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            s: Math.random() * 8 + 2, // 속도 차이 (패럴랙스)
+            a: Math.random() * 0.5 + 0.2
         }));
     }
 
-    const handleInput = (x, y) => { player.tx = x; player.ty = y - 90; };
-    window.addEventListener('touchmove', (e) => { e.preventDefault(); handleInput(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
-    window.addEventListener('mousemove', (e) => handleInput(e.clientX, e.clientY));
+    const move = (x, y) => {
+        // [UX] 화면 경계 제한
+        player.tx = Math.max(40, Math.min(width - 40, x));
+        player.ty = Math.max(100, Math.min(height - 100, y - 80));
+    };
+    window.addEventListener('touchmove', (e) => { e.preventDefault(); move(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+    window.addEventListener('mousemove', (e) => move(e.clientX, e.clientY));
 
     class Bullet {
-        constructor(x, y) { this.x = x; this.y = y; this.v = 22; }
+        constructor(x, y) { this.x = x; this.y = y; this.v = 24; }
         draw() {
             ctx.fillStyle = '#fff'; ctx.shadowBlur = 15; ctx.shadowColor = '#00ffcc';
             ctx.fillRect(this.x - 2, this.y, 4, 25); this.y -= this.v;
+            ctx.shadowBlur = 0;
         }
     }
 
     class Enemy {
         constructor(isBoss = false) {
             this.isBoss = isBoss;
-            this.x = isBoss ? width / 2 : Math.random() * (width - 60) + 30;
-            this.y = -150;
-            this.hp = isBoss ? 150 : 1;
-            this.size = isBoss ? 130 : 35;
-            this.v = isBoss ? 0.3 : 4.5;
-            this.t = 0;
+            this.x = isBoss ? width / 2 : Math.random() * (width - 80) + 40;
+            this.y = -100;
+            this.hp = isBoss ? 200 : 1;
+            this.maxHp = this.hp;
+            this.size = isBoss ? 140 : 35;
+            this.v = isBoss ? 0.35 : 4.5;
+            this.flash = 0;
         }
         draw() {
-            this.t += 0.05;
+            if (this.flash > 0) { ctx.filter = 'brightness(3)'; this.flash--; }
             ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#ff4444';
             ctx.lineWidth = 4; ctx.shadowBlur = 20; ctx.shadowColor = ctx.strokeStyle;
-            let drawX = this.isBoss ? this.x + Math.sin(this.t) * 80 : this.x;
-            let drawY = this.isBoss ? Math.min(this.y, 150) : this.y;
+            
             this.y += this.v;
-            ctx.strokeRect(drawX - this.size/2, drawY - this.size/2, this.size, this.size);
+            let drawX = this.x;
+            let drawY = this.isBoss ? Math.min(this.y, height * 0.2) : this.y;
             
             if (this.isBoss) {
+                drawX += Math.sin(frame * 0.04) * (width * 0.3); // 광역 무빙
                 document.getElementById('boss-ui').style.display = 'block';
-                document.getElementById('hp-bar').style.width = (this.hp / 150) * 100 + '%';
-                this.realX = drawX; this.realY = drawY;
+                document.getElementById('hp-bar').style.width = (this.hp / this.maxHp) * 100 + '%';
             }
+            ctx.strokeRect(drawX - this.size/2, drawY - this.size/2, this.size, this.size);
             this.curX = drawX; this.curY = drawY;
+            ctx.filter = 'none'; ctx.shadowBlur = 0;
         }
     }
 
     function render() {
+        if(!gameActive) return;
         frame++;
-        if (shake > 0) { ctx.setTransform(1,0,0,1,Math.random()*6-3, Math.random()*6-3); shake--; }
+        if (shake > 0) { ctx.setTransform(1,0,0,1,Math.random()*8-4, Math.random()*8-4); shake--; }
         else { ctx.setTransform(1,0,0,1,0,0); }
 
         ctx.fillStyle = '#000'; ctx.fillRect(0,0,width,height);
 
-        // [배경 전문가] 3D 워프 효과
-        ctx.strokeStyle = 'rgba(0, 255, 204, 0.2)';
+        // [배경 전문가] 패럴랙스 배경
+        if (assets.bg.complete) {
+            ctx.globalAlpha = 0.4;
+            let bgH = (frame * 1.5) % height;
+            ctx.drawImage(assets.bg, 0, bgH - height, width, height);
+            ctx.drawImage(assets.bg, 0, bgH, width, height);
+            ctx.globalAlpha = 1;
+        }
+
         stars.forEach(s => {
-            s.z -= 15;
-            if (s.z <= 0) s.z = width;
-            let x = (s.x / s.z) * width + width/2;
-            let y = (s.y / s.z) * height + height/2;
-            let sz = (1 - s.z/width) * 5;
-            ctx.beginPath(); ctx.arc(x, y, sz, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = `rgba(0, 255, 204, ${s.a})`;
+            ctx.fillRect(s.x, s.y, 1.5, s.s * 3);
+            s.y += s.s;
+            if (s.y > height) s.y = -20;
         });
 
-        // 플레이어 (관성 물리 적용)
-        player.x += (player.tx - player.x) * 0.15;
-        player.y += (player.ty - player.y) * 0.15;
+        // 플레이어
+        player.x += (player.tx - player.x) * 0.18;
+        player.y += (player.ty - player.y) * 0.18;
         ctx.shadowBlur = 30; ctx.shadowColor = '#00ffcc';
-        if (assets.player.complete && assets.player.naturalWidth !== 0) {
+        if (assets.player.complete) {
             ctx.drawImage(assets.player, player.x - 50, player.y - 50, 100, 100);
         } else {
-            ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.moveTo(player.x, player.y-40); ctx.lineTo(player.x-30, player.y+20); ctx.lineTo(player.x+30, player.y+20); ctx.closePath(); ctx.stroke();
+            ctx.strokeStyle = '#00ffcc'; ctx.beginPath();
+            ctx.moveTo(player.x, player.y-40); ctx.lineTo(player.x-30, player.y+20); ctx.lineTo(player.x+30, player.y+20);
+            ctx.closePath(); ctx.stroke();
         }
 
         // 로직 업데이트
-        if (frame % 7 === 0) bullets.push(new Bullet(player.x, player.y - 45));
-        if (frame % 45 === 0 && !boss) enemies.push(new Enemy());
-        if (score >= 3000 && !boss) { boss = new Enemy(true); enemies.push(boss); }
+        if (frame % 8 === 0) bullets.push(new Bullet(player.x, player.y - 45));
+        if (frame % 50 === 0 && !boss) enemies.push(new Enemy());
+        if (score >= 5000 && !boss) { boss = new Enemy(true); enemies.push(boss); }
 
         bullets.forEach((b, bi) => {
             b.draw();
@@ -142,19 +170,20 @@
         enemies.forEach((e, ei) => {
             e.draw();
             bullets.forEach((b, bi) => {
-                let dx = e.curX - b.x, dy = e.curY - b.y;
-                if (Math.hypot(dx, dy) < e.size/1.5) {
-                    e.hp--; bullets.splice(bi, 1); shake = 4;
+                let dist = Math.hypot(e.curX - b.x, e.curY - b.y);
+                if (dist < e.size/1.4) {
+                    e.hp--; e.flash = 2; bullets.splice(bi, 1); shake = 5;
                     if (e.hp <= 0) {
-                        score += e.isBoss ? 5000 : 100;
+                        score += e.isBoss ? 10000 : 100;
                         if (e.isBoss) { boss = null; document.getElementById('boss-ui').style.display = 'none'; }
                         enemies.splice(ei, 1);
-                        document.getElementById('score').innerText = score.toLocaleString();
-                        document.getElementById('score').style.transform = 'scale(1.3)';
-                        setTimeout(()=> document.getElementById('score').style.transform = 'scale(1)', 100);
+                        document.getElementById('score-display').innerText = "SCORE: " + score.toLocaleString();
+                        document.getElementById('score-display').style.transform = 'scale(1.2)';
+                        setTimeout(()=> document.getElementById('score-display').style.transform = 'scale(1)', 100);
                     }
                 }
             });
+            // 보스가 아래로 나갈 경우 (탈출 시나리오)
             if (e.y > height + 200) {
                 if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display = 'none'; }
                 enemies.splice(ei, 1);

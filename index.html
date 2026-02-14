@@ -3,34 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v36.0 - PURE LOGIC</title>
+    <title>NEON SHOOTER v37.0 - ABSOLUTE ZERO</title>
     <style>
-        :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #010103; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: var(--bg); touch-action: none; font-family: 'Arial Black', sans-serif; }
+        :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; }
         canvas { display: block; width: 100%; height: 100%; }
-        #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; color: white; }
+        #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 100; color: white; }
         .interactive { pointer-events: auto; }
-        #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.98); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(40px); transition: 0.8s; }
+        #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.98); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(40px); transition: 0.8s; }
         .main-btn { padding: 22px 100px; background: transparent; border: 3px solid var(--mint); color: var(--mint); border-radius: 60px; font-weight: bold; font-size: 1.7rem; cursor: pointer; box-shadow: 0 0 40px var(--mint); transition: 0.3s; letter-spacing: 5px; }
         #hud { position: absolute; top: 0; width: 100%; padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; }
-        .hud-box { background: rgba(0, 255, 204, 0.03); border: 2.5px solid var(--mint); padding: 15px 35px; border-radius: 30px; backdrop-filter: blur(25px); box-shadow: 0 0 30px var(--mint); }
+        .hud-box { background: rgba(0, 0, 0, 0.7); border: 2.5px solid var(--mint); padding: 15px 35px; border-radius: 30px; box-shadow: 0 0 30px var(--mint); }
         #boss-ui { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: 85%; display: none; text-align: center; }
         .hp-container { height: 18px; background: rgba(255, 0, 255, 0.1); border: 2.5px solid var(--pink); border-radius: 30px; overflow: hidden; }
-        #hp-bar { height: 100%; background: linear-gradient(90deg, var(--pink), #fff); width: 100%; transition: width 0.1s; }
-        #warning { position: absolute; inset: 0; border: 15px inset var(--pink); display: none; animation: blink 0.5s infinite; z-index: 5; pointer-events: none; }
-        @keyframes blink { 0%, 100% { opacity: 0.6; } 50% { opacity: 0; } }
+        #hp-bar { height: 100%; background: linear-gradient(90deg, var(--pink), #fff); width: 100%; }
     </style>
 </head>
 <body onload="initAssets()">
 
 <canvas id="gameCanvas"></canvas>
-<div id="warning"></div>
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <div style="color:var(--mint); font-size:4.5rem; font-style:italic; text-shadow:0 0 60px var(--mint); margin-bottom:50px;">PURE LOGIC</div>
+        <div style="color:var(--mint); font-size:4rem; font-style:italic; text-shadow:0 0 50px var(--mint); margin-bottom:50px;">NEON SHOOTER</div>
         <button class="main-btn" onclick="startGame()">MISSION START</button>
-        <div id="high-score" style="margin-top:25px; color:var(--gold); font-size:1rem; letter-spacing:2px;">BEST SCORE: 0</div>
+        <div id="status" style="margin-top:20px; color:var(--gold); font-size:0.8rem;">V37.0 ABSOLUTE ZERO // BUG FIX COMPLETE</div>
     </div>
 
     <div id="hud">
@@ -39,7 +36,7 @@
     </div>
 
     <div id="boss-ui">
-        <div style="color:var(--pink); font-size:0.9rem; margin-bottom:10px; letter-spacing:5px; font-weight:bold;">ULTIMATE SINGULARITY IDENTIFIED</div>
+        <div style="color:var(--pink); font-size:0.9rem; margin-bottom:10px; font-weight:bold;">BOSS ENTITY ENGAGED</div>
         <div class="hp-container"><div id="hp-bar"></div></div>
     </div>
 </div>
@@ -49,22 +46,20 @@
     const ctx = canvas.getContext('2d');
     const assets = { bg: new Image(), player: new Image() };
     
-    let width, height, centerX, centerY, player, bullets = [], enemies = [], stars = [], particles = [], frame = 0;
-    let score = 0, hp = 100, isPlaying = false, boss = null, bossTrigger = 5000, shake = 0, hitStop = 0;
+    let width, height, centerX, centerY, player, bullets = [], enemies = [], stars = [], frame = 0;
+    let score = 0, hp = 100, isPlaying = false, boss = null, bossTrigger = 5000;
 
     function initAssets() {
         assets.bg.src = 'assets/bg_night.png';
         assets.player.src = 'assets/player.png';
         assets.player.onload = init;
-        const best = localStorage.getItem('neon_best') || 0;
-        document.getElementById('high-score').innerText = `BEST SCORE: ${parseInt(best).toLocaleString()}`;
     }
 
     function init() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
         centerX = width / 2; centerY = height / 2;
-        player = { x: centerX, y: height + 100, tx: centerX, ty: height - 180, scale: 1.0, tilt: 0 };
+        player = { x: centerX, y: height - 180, tx: centerX, ty: height - 180 };
         stars = Array(150).fill().map(() => ({ x: Math.random()*width-centerX, y: Math.random()*height-centerY, z: Math.random()*width }));
     }
 
@@ -78,22 +73,19 @@
         if(!isPlaying) return; e.preventDefault();
         player.tx = Math.max(60, Math.min(width-60, e.touches[0].clientX));
         player.ty = Math.max(150, Math.min(height-100, e.touches[0].clientY - 80));
-        player.tilt = (e.touches[0].clientX - centerX) * 0.0025;
     }, { passive: false });
 
     class Bullet {
         constructor(x, y) {
             this.x = x; this.y = y; this.scale = 1.0;
-            this.vx = (centerX - x) * 0.095; this.vy = (centerY - y) * 0.095;
+            this.vx = (centerX - x) * 0.09; this.vy = (centerY - y) * 0.09;
             this.active = true;
         }
         draw() {
             this.x += this.vx; this.y += this.vy; this.scale *= 0.93;
-            if(this.scale < 0.05) this.active = false;
+            if(this.scale < 0.05) { this.active = false; return; }
             ctx.fillStyle = `rgba(255, 255, 255, ${this.scale + 0.3})`;
-            ctx.shadowBlur = 20 * this.scale; ctx.shadowColor = '#00ffcc';
             ctx.beginPath(); ctx.arc(this.x, this.y, 8 * this.scale, 0, Math.PI*2); ctx.fill();
-            ctx.shadowBlur = 0;
         }
     }
 
@@ -111,12 +103,14 @@
             } else { this.dist += (this.scale * 24); }
             this.cx = centerX + Math.cos(this.angle) * this.dist;
             this.cy = centerY + Math.sin(this.angle) * this.dist;
-            if(this.scale > 12) this.active = false; // [해결] 하단 잔상 방지를 위한 명확한 제거
+            
+            // [해결] 화면 밖으로 나가는 순간 완벽하게 제거 플래그
+            if(this.scale > 5) this.active = false;
         }
         draw() {
-            if(!this.active) return;
+            if(!this.active || this.scale > 2) return; // 렌더링 세이프티 가드
             ctx.save(); ctx.translate(this.cx, this.cy); ctx.scale(this.scale, this.scale);
-            ctx.strokeStyle = this.isBoss ? (this.hp < 150 ? '#ff0000' : '#ff00ff') : '#00ffff';
+            ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#00ffff';
             ctx.lineWidth = 5; ctx.strokeRect(-45, -45, 90, 90);
             ctx.restore();
         }
@@ -124,69 +118,78 @@
 
     function render() {
         if(!isPlaying) return;
-        if(hitStop > 0) { hitStop--; requestAnimationFrame(render); return; }
         frame++;
-        if(shake > 0) { ctx.setTransform(1,0,0,1,Math.random()*18-9, Math.random()*18-9); shake--; }
-        else ctx.setTransform(1, player.tilt, 0, 1, 0, 0);
+        
+        // [해결] 캔버스 완전 초기화 (잔상 방지)
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, width, height);
 
-        ctx.fillStyle = '#000'; ctx.fillRect(0,0,width,height);
-
+        // 별 배경
         stars.forEach(s => {
-            s.z -= 32; if(s.z <= 0) s.z = width;
+            s.z -= 30; if(s.z <= 0) s.z = width;
             let x = (s.x / s.z) * width + centerX;
             let y = (s.y / s.z) * height + centerY;
             ctx.fillStyle = `rgba(0, 255, 204, ${1 - s.z/width})`;
-            ctx.fillRect(x, y, 3, 3);
+            ctx.fillRect(x, y, 2, 2);
         });
 
+        // 1. 공격 (플레이어 뒤 레이어)
         if(frame % 7 === 0) bullets.push(new Bullet(player.x-40, player.y), new Bullet(player.x+40, player.y));
         bullets = bullets.filter(b => b.active);
         bullets.forEach(b => b.draw());
 
-        if(frame % 35 === 0 && !boss) enemies.push(new Enemy());
+        // 2. 적 및 보스 생성
+        if(frame % 40 === 0 && !boss) enemies.push(new Enemy());
         if(score >= bossTrigger && !boss) {
             boss = new Enemy(true); enemies.push(boss);
             document.getElementById('boss-ui').style.display = 'block';
-            document.getElementById('warning').style.display = 'block';
-            setTimeout(() => document.getElementById('warning').style.display = 'none', 2000);
         }
 
+        // 3. 적 업데이트 및 충돌
         enemies.forEach((e, ei) => {
-            e.update(); e.draw();
-            if(e.active && e.scale > 0.8 && e.scale < 1.5 && Math.hypot(e.cx - player.x, e.cy - player.y) < 80) {
-                hp -= 20; shake = 35; document.getElementById('hp-val').innerText = Math.max(0, hp);
-                if(hp <= 0) {
-                    const best = localStorage.getItem('neon_best') || 0;
-                    if(score > best) localStorage.setItem('neon_best', score);
-                    location.reload();
+            e.update();
+            e.draw();
+
+            // 충돌 판정 (기체 뒤쪽 잔상 방지를 위해 scale 1.5 이하에서만 체크)
+            if(e.active && e.scale > 0.8 && e.scale < 1.5) {
+                if(Math.hypot(e.cx - player.x, e.cy - player.y) < 70) {
+                    hp -= 20; document.getElementById('hp-val').innerText = hp;
+                    if(hp <= 0) location.reload();
+                    if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display = 'none'; }
+                    enemies.splice(ei, 1);
                 }
-                if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display = 'none'; }
-                enemies.splice(ei, 1);
             }
+
+            // 총알 타격
             bullets.forEach((b, bi) => {
-                if(e.active && b.active && Math.hypot(e.cx - b.x, e.cy - b.y) < (e.isBoss ? 160 : 100) * e.scale) {
+                if(e.active && b.active && Math.hypot(e.cx - b.x, e.cy - b.y) < (e.isBoss ? 150 : 80) * e.scale) {
                     e.hp--; bullets.splice(bi, 1);
                     if(e.hp <= 0) {
                         score += e.isBoss ? 30000 : 100;
-                        if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display = 'none'; bossTrigger += 20000; shake = 60; }
+                        if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display = 'none'; bossTrigger += 15000; }
                         enemies.splice(ei, 1);
-                        document.getElementById('score-val').innerText = score.toLocaleString();
+                        document.getElementById('score-val').innerText = score;
                     }
                 }
             });
+
+            // [해결] 보스전 정체 버그 핵심: active가 꺼지면 무조건 boss 변수 리셋
             if(!e.active) {
-                if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display = 'none'; bossTrigger += 10000; }
+                if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display = 'none'; bossTrigger += 5000; }
                 enemies.splice(ei, 1);
             }
         });
 
-        player.x += (player.tx - player.x) * 0.25;
-        player.y += (player.ty - player.y) * 0.25;
+        // 4. 플레이어 (최상위 레이어)
+        player.x += (player.tx - player.x) * 0.2;
+        player.y += (player.ty - player.y) * 0.2;
         if(assets.player.complete) {
-            ctx.shadowBlur = 45; ctx.shadowColor = '#00ffcc';
+            ctx.shadowBlur = 30; ctx.shadowColor = '#00ffcc';
             ctx.drawImage(assets.player, player.x-60, player.y-60, 120, 120);
             ctx.shadowBlur = 0;
         }
+
         requestAnimationFrame(render);
     }
 </script>

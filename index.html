@@ -2,153 +2,134 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NEON SHOOTER</title>
     <style>
         :root {
             --neon-mint: #00ffcc;
             --neon-pink: #ff00ff;
-            --overlay-dark: rgba(0, 0, 0, 0.7); /* 배경이 잘 보이도록 투명도 조절 */
+            --overlay: rgba(0, 0, 0, 0.65);
         }
+
+        * { -webkit-tap-highlight-color: transparent; outline: none; }
 
         body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
+            margin: 0; padding: 0; width: 100%; height: 100svh;
             overflow: hidden; background-color: #000;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            background-size: cover; 
-            background-position: center;
-            background-repeat: no-repeat;
-            transition: background 1.5s ease-in-out; /* 배경 전환 부드럽게 */
+            font-family: 'Pretendard', sans-serif;
+            background-size: cover; background-position: center;
+            transition: background 1s ease-in-out;
         }
 
-        /* 가독성을 위한 블러 오버레이 */
         #ui-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--overlay-dark);
-            backdrop-filter: blur(3px); /* 배경을 살짝 흐리게 해서 UI 집중도 향상 */
-            z-index: 1;
+            background: var(--overlay); backdrop-filter: blur(4px); z-index: 1;
         }
 
         #game-ui {
-            position: relative; z-index: 10; width: 100%; height: 100%;
+            position: relative; z-index: 10; height: 100%;
             display: flex; flex-direction: column; align-items: center;
-            color: white; padding: 20px; box-sizing: border-box;
-            justify-content: space-around;
+            justify-content: space-between; /* 요소 간 간격 균등 분배 */
+            color: white; padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom) 20px;
+            box-sizing: border-box;
         }
 
+        .header-group { text-align: center; margin-top: 20px; }
         h1 {
             color: var(--neon-mint); text-shadow: 0 0 15px var(--neon-mint);
-            font-size: 2.8rem; margin: 10px 0; font-style: italic;
+            font-size: 3rem; margin: 0; font-style: italic; letter-spacing: -1px;
         }
 
+        .panel-container { width: 100%; display: flex; flex-direction: column; gap: 15px; }
         .panel {
-            background: rgba(0, 0, 0, 0.5); 
-            border: 2px solid var(--neon-pink);
-            border-radius: 15px; padding: 15px; width: 90%;
-            box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1.5px solid var(--neon-pink); border-radius: 18px;
+            padding: 18px; box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
         }
+
+        .panel h3 { margin: 0 0 12px 0; font-size: 1.1rem; color: var(--neon-pink); display: flex; align-items: center; gap: 8px; }
 
         .progress-bar {
-            width: 100%; height: 12px; background: #222; border-radius: 6px;
-            overflow: hidden; margin-top: 8px; border: 1px solid #444;
+            width: 100%; height: 14px; background: rgba(255,255,255,0.1);
+            border-radius: 7px; overflow: hidden; margin-top: 10px;
         }
         .progress-fill {
             height: 100%; background: linear-gradient(90deg, var(--neon-mint), #fff);
-            width: 45%; /* 테스트용 값 */
-            box-shadow: 0 0 10px var(--neon-mint);
+            width: 45%; box-shadow: 0 0 10px var(--neon-mint); transition: width 0.4s ease;
         }
 
-        /* 터치 파티클 효과 */
+        .test-btn {
+            width: 80%; max-width: 300px; padding: 16px; margin-bottom: 30px;
+            background: transparent; border: 2px solid var(--neon-mint);
+            color: var(--neon-mint); font-weight: bold; font-size: 1.1rem;
+            border-radius: 40px; text-shadow: 0 0 8px var(--neon-mint);
+            box-shadow: 0 0 12px var(--neon-mint); cursor: pointer;
+        }
+
         .particle {
-            position: absolute; width: 8px; height: 8px;
-            background: var(--neon-pink); border-radius: 50%;
-            box-shadow: 0 0 15px var(--neon-pink); pointer-events: none;
-            animation: explode 0.6s ease-out forwards;
+            position: absolute; width: 6px; height: 6px; background: var(--neon-mint);
+            border-radius: 50%; box-shadow: 0 0 10px var(--neon-mint);
+            pointer-events: none; animation: explode 0.6s ease-out forwards;
         }
         @keyframes explode {
             0% { transform: translate(0, 0) scale(1); opacity: 1; }
             100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
         }
-
-        #clear-msg {
-            position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 3rem; color: #fff; font-weight: bold;
-            text-shadow: 0 0 20px var(--neon-pink), 0 0 40px var(--neon-pink);
-            display: none; z-index: 100; text-align: center;
-        }
     </style>
 </head>
 <body onclick="spawn_particles(event)">
-
-<div id="ui-overlay"></div>
-<div id="game-ui">
-    <h1>NEON SHOOTER</h1>
-    
-    <div class="panel">
-        <h3 style="margin:0; color:var(--neon-pink);">🏆 TOP RANKERS</h3>
-        <div id="rank-list" style="font-size: 0.9rem; margin-top:10px;">
-            1. Player_A - 9,999<br>
-            2. Player_B - 8,450
+    <div id="ui-overlay"></div>
+    <div id="game-ui">
+        <div class="header-group">
+            <h1>NEON SHOOTER</h1>
         </div>
+
+        <div class="panel-container">
+            <div class="panel">
+                <h3>🏆 TOP RANKERS</h3>
+                <div id="rank-list" style="line-height: 1.6;">
+                    1. Player_A - 9,999<br>
+                    2. Player_B - 8,450
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>🎯 CURRENT MISSION</h3>
+                적 기체 100대 격추 (45/100)
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+            </div>
+        </div>
+
+        <button class="test-btn" onclick="test_clear(event)">MISSION TEST</button>
     </div>
 
-    <div class="panel">
-        <h3 style="margin:0;">🎯 CURRENT MISSION</h3>
-        <div id="mission-info" style="margin-top:10px;">
-            적 기체 100대 격추 (45/100)
-            <div class="progress-bar"><div class="progress-fill"></div></div>
-        </div>
-    </div>
-
-    <button onclick="show_clear()" style="margin-top: 20px; padding: 15px 30px; background: none; border: 2px solid var(--neon-mint); color: var(--neon-mint); font-weight: bold; border-radius: 30px; text-shadow: 0 0 10px var(--neon-mint); box-shadow: 0 0 15px var(--neon-mint);">
-        MISSION TEST
-    </button>
-</div>
-
-<div id="clear-msg">MISSION<br>COMPLETE!</div>
-
-<script>
-    // 1. 시간대별 배경 설정 (.png 확장자 반영)
-    function apply_theme() {
-        const hour = new Date().getHours();
-        const body = document.body;
-        
-        // 깃허브 assets 폴더 내 파일명과 정확히 일치해야 합니다.
-        if (hour >= 2 && hour <= 6) {
-            body.style.backgroundImage = "url('assets/bg_dawn.png')";
-        } else {
-            body.style.backgroundImage = "url('assets/bg_night.png')";
+    <script>
+        function apply_theme() {
+            const hour = new Date().getHours();
+            // 새벽 2시~6시 사이면 dawn, 아니면 night
+            const bg = (hour >= 2 && hour <= 6) ? 'assets/bg_dawn.png' : 'assets/bg_night.png';
+            document.body.style.backgroundImage = `url('${bg}')`;
         }
-    }
 
-    // 2. 파티클 효과 (클릭 시 발생)
-    function spawn_particles(e) {
-        for (let i = 0; i < 12; i++) {
-            const p = document.createElement('div');
-            p.className = 'particle';
-            p.style.left = e.clientX + 'px';
-            p.style.top = e.clientY + 'px';
-            
-            const tx = (Math.random() - 0.5) * 250 + 'px';
-            const ty = (Math.random() - 0.5) * 250 + 'px';
-            p.style.setProperty('--tx', tx);
-            p.style.setProperty('--ty', ty);
-            
-            document.body.appendChild(p);
-            setTimeout(() => p.remove(), 600);
+        function spawn_particles(e) {
+            for (let i = 0; i < 8; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.left = e.clientX + 'px'; p.style.top = e.clientY + 'px';
+                const tx = (Math.random() - 0.5) * 200 + 'px';
+                const ty = (Math.random() - 0.5) * 200 + 'px';
+                p.style.setProperty('--tx', tx); p.style.setProperty('--ty', ty);
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 600);
+            }
         }
-    }
 
-    // 3. 미션 클리어 연출 테스트
-    function show_clear() {
-        const msg = document.getElementById('clear-msg');
-        msg.style.display = 'block';
-        setTimeout(() => msg.style.display = 'none', 2000);
-    }
+        function test_clear(e) {
+            e.stopPropagation(); // 버튼 클릭 시 바디 파티클 중복 방지
+            alert("미션 클리어 연출 예정!");
+        }
 
-    // 초기 실행 및 리사이즈 대응
-    apply_theme();
-    window.addEventListener('resize', apply_theme);
-</script>
+        apply_theme();
+    </script>
 </body>
 </html>

@@ -3,163 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER - PLAY</title>
+    <title>NEON SHOOTER - MISSION START</title>
     <style>
-        :root { --neon-mint: #00ffcc; --neon-pink: #ff00ff; --overlay: rgba(0, 0, 0, 0.8); }
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        :root { --mint: #00ffcc; --pink: #ff00ff; --dark: #050505; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: var(--dark); font-family: 'Pretendard', sans-serif; color: white; }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; filter: contrast(1.2) brightness(1.1); }
         
-        /* 공통 배경 */
-        .bg-layer { position: fixed; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: -1; }
+        /* 로그인 및 UI 레이어 */
+        #ui-layer { position: absolute; inset: 0; z-index: 10; pointer-events: none; display: flex; flex-direction: column; }
+        .interactive { pointer-events: auto; }
 
-        /* 화면 세션 (상태 관리용) */
-        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: space-around; padding: 40px 20px; z-index: 10; color: white; }
-        .active { display: flex; }
+        /* 로그인 화면 */
+        #login-screen { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; transition: opacity 0.5s; }
+        .logo { font-size: 3.5rem; font-weight: 900; font-style: italic; color: var(--mint); text-shadow: 0 0 20px var(--mint); margin-bottom: 40px; }
+        .input-box { background: rgba(255,255,255,0.1); border: 2px solid var(--pink); border-radius: 30px; padding: 15px 25px; color: white; font-size: 1.1rem; text-align: center; margin-bottom: 20px; width: 70%; max-width: 300px; }
+        .start-btn { background: var(--pink); border: none; border-radius: 30px; padding: 15px 50px; color: white; font-weight: bold; font-size: 1.2rem; cursor: pointer; box-shadow: 0 0 20px var(--pink); }
 
-        /* UI 요소 */
-        h1 { color: var(--neon-mint); text-shadow: 0 0 15px var(--neon-mint); font-size: 3rem; font-style: italic; }
-        .panel { background: rgba(255, 255, 255, 0.05); border: 2px solid var(--neon-pink); border-radius: 20px; padding: 20px; width: 100%; box-shadow: 0 0 20px rgba(255, 0, 255, 0.3); text-align: center; }
-        .btn { padding: 20px 50px; background: transparent; border: 2px solid var(--neon-mint); color: var(--neon-mint); font-weight: bold; font-size: 1.2rem; border-radius: 40px; box-shadow: 0 0 15px var(--neon-mint); cursor: pointer; transition: 0.2s; }
-        .btn:active { transform: scale(0.95); background: var(--neon-mint); color: #000; }
-
-        /* 게임 캔버스 */
-        #gameCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; display: none; }
-        #ingame-ui { position: fixed; top: 20px; left: 20px; z-index: 20; color: var(--neon-mint); font-size: 1.5rem; font-weight: bold; text-shadow: 0 0 10px #000; display: none; pointer-events: none; }
+        /* 인게임 HUD */
+        #hud { display: none; padding: 20px env(safe-area-inset-right) 0 env(safe-area-inset-left); justify-content: space-between; font-weight: bold; font-size: 1.2rem; }
+        .boss-hp-container { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 80%; display: none; }
+        .boss-label { text-align: center; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 5px; color: var(--pink); }
+        .hp-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; border: 1px solid var(--pink); }
+        #hp-fill { height: 100%; background: var(--pink); width: 100%; transition: width 0.2s; }
     </style>
 </head>
 <body>
-    <div class="bg-layer" id="mainBg"></div>
-    
-    <div id="screen-main" class="screen active">
-        <h1>NEON SHOOTER</h1>
-        <div class="panel">
-            <h3 style="color:var(--neon-pink); margin:0;">GLOBAL RANKING</h3>
-            <div id="rank-display" style="margin-top:15px; font-size:1rem; line-height:1.6;">서버 연결 중...</div>
-        </div>
-        <button class="btn" onclick="startGame()">MISSION START</button>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui-layer">
+    <div id="login-screen" class="interactive">
+        <div class="logo">NEON SHOOTER</div>
+        <input type="text" id="user-id" class="input-box" placeholder="ENTER CALLSIGN" value="PILOT_01">
+        <button class="start-btn" onclick="startGame()">MISSION START</button>
     </div>
 
-    <div id="ingame-ui">SCORE: <span id="currentScore">0</span></div>
-    <canvas id="gameCanvas"></canvas>
-
-    <div id="screen-result" class="screen">
-        <h1>MISSION CLEAR</h1>
-        <div class="panel">
-            <p>당신의 점수</p>
-            <h2 id="finalScore" style="font-size: 3rem; color: var(--neon-mint); margin: 10px 0;">0</h2>
-            <p id="sync-status" style="color:var(--neon-pink);">데이터 동기화 중...</p>
-        </div>
-        <button class="btn" onclick="location.reload()">MAIN MENU</button>
+    <div id="hud">
+        <div style="color: var(--mint)">SCORE: <span id="score">0</span></div>
+        <div style="color: #ff3333">HP: <span id="player-hp">100</span></div>
     </div>
 
-    <script>
-        const API_URL =  "https://te3hlwv09c.execute-api.ap-northeast-2.amazonaws.com/default/";
-        
-        // 게임 상태 변수
-        let canvas, ctx;
-        let score = 0;
-        let isPlaying = false;
-        let player, enemies = [], particles = [];
+    <div class="boss-hp-container" id="boss-ui">
+        <div class="boss-label">BOSS APPROACHING</div>
+        <div class="hp-bar"><div id="hp-fill"></div></div>
+    </div>
+</div>
 
-        // 1. 초기화 및 배경 설정
-        function init() {
-            const hour = new Date().getHours();
-            const bg = (hour >= 2 && hour <= 6) ? "url('assets/bg_dawn.png')" : "url('assets/bg_night.png')";
-            document.getElementById('mainBg').style.backgroundImage = bg;
-            fetchRanking(); // 시작 시 랭킹 불러오기
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const loginScreen = document.getElementById('login-screen');
+    const hud = document.getElementById('hud');
+    const bossUi = document.getElementById('boss-ui');
+
+    let width, height, player, bullets = [], enemies = [], stars = [], frame = 0;
+    let isGaming = false, score = 0, boss = null;
+
+    function init() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        player = { x: width / 2, y: height - 150, size: 30, targetX: width / 2 };
+        // 이미지의 속도감을 위한 배경 파티클 (별/차선 효과)
+        stars = Array(40).fill().map(() => ({ x: Math.random() * width, y: Math.random() * height, s: Math.random() * 5 + 2 }));
+    }
+
+    function startGame() {
+        loginScreen.style.opacity = '0';
+        setTimeout(() => {
+            loginScreen.style.display = 'none';
+            hud.style.display = 'flex';
+            isGaming = true;
+            loop();
+        }, 500);
+    }
+
+    // 터치/마우스 조종 인식률 최적화
+    window.addEventListener('touchmove', (e) => {
+        if(!isGaming) return;
+        e.preventDefault();
+        player.targetX = e.touches[0].clientX;
+    }, { passive: false });
+    window.addEventListener('mousemove', (e) => {
+        if(!isGaming) return;
+        player.targetX = e.clientX;
+    });
+
+    class Bullet {
+        constructor(x, y) { this.x = x; this.y = y; }
+        draw() {
+            ctx.fillStyle = '#00ffcc';
+            ctx.shadowBlur = 15; ctx.shadowColor = '#00ffcc';
+            ctx.fillRect(this.x - 2, this.y, 4, 20);
+            this.y -= 12;
         }
+    }
 
-        // 2. 랭킹 데이터 가져오기 (AWS 연동)
-        async function fetchRanking() {
-            try {
-                const res = await fetch(API_URL);
-                const data = await res.json();
-                const display = document.getElementById('rank-display');
-                display.innerHTML = data.rankers.map((r, i) => `${i+1}. ${r.nickname || 'Unknown'} - ${r.score}`).join('<br>');
-            } catch (e) {
-                console.error(e);
+    class Enemy {
+        constructor(isBoss = false) {
+            this.isBoss = isBoss;
+            this.x = isBoss ? width / 2 : Math.random() * (width - 60) + 30;
+            this.y = -100;
+            this.hp = isBoss ? 100 : 1;
+            this.size = isBoss ? 80 : 25;
+            this.speed = isBoss ? 0.5 : 4;
+        }
+        draw() {
+            ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#ff3333';
+            ctx.lineWidth = 3; ctx.shadowBlur = 20; ctx.shadowColor = ctx.strokeStyle;
+            ctx.strokeRect(this.x - this.size, this.y - this.size, this.size * 2, this.size * 2);
+            this.y += this.speed;
+            if(this.isBoss) {
+                this.x += Math.sin(frame * 0.02) * 3;
+                bossUi.style.display = 'block';
+                document.getElementById('hp-fill').style.width = this.hp + '%';
             }
         }
+    }
 
-        // 3. 게임 시작 로직 (화면 전환)
-        function startGame() {
-            document.getElementById('screen-main').classList.remove('active');
-            document.getElementById('gameCanvas').style.display = 'block';
-            document.getElementById('ingame-ui').style.display = 'block';
-            
-            setupCanvas();
-            score = 0;
-            isPlaying = true;
-            enemies = [];
-            animate();
-            
-            // 15초 뒤 게임 종료 (테스트용)
-            setTimeout(endGame, 15000);
-        }
+    function loop() {
+        if(!isGaming) return;
+        frame++;
+        ctx.fillStyle = 'rgba(5, 5, 5, 0.3)'; // 모션 블러 효과
+        ctx.fillRect(0, 0, width, height);
 
-        // 4. 슈팅 게임 로직 (Canvas 엔진)
-        function setupCanvas() {
-            canvas = document.getElementById('gameCanvas');
-            ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            
-            player = { x: canvas.width/2, y: canvas.height - 80, size: 30 };
-            
-            // 터치/클릭으로 총 쏘기
-            canvas.onclick = (e) => {
-                if(!isPlaying) return;
-                checkHit(e.clientX, e.clientY);
-            };
-        }
+        // 배경 속도감 연출
+        stars.forEach(s => {
+            ctx.fillStyle = 'rgba(0, 255, 204, 0.3)';
+            ctx.fillRect(s.x, s.y, 2, s.s * 2);
+            s.y += s.s * 3;
+            if(s.y > height) s.y = -10;
+        });
 
-        function animate() {
-            if(!isPlaying) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // 적 생성 및 그리기
-            if(Math.random() < 0.05) {
-                enemies.push({ x: Math.random()*canvas.width, y: -50, speed: 3 + Math.random()*5 });
-            }
-            
-            ctx.fillStyle = "#ff00ff";
-            enemies.forEach((en, index) => {
-                en.y += en.speed;
-                ctx.beginPath();
-                ctx.arc(en.x, en.y, 20, 0, Math.PI*2);
-                ctx.fill();
-                
-                if(en.y > canvas.height) enemies.splice(index, 1);
-            });
+        // 플레이어 보간 이동 (부드러운 조종)
+        player.x += (player.targetX - player.x) * 0.15;
 
-            requestAnimationFrame(animate);
-        }
+        // 플레이어 드로잉 (이미지의 네온 기체 스타일)
+        ctx.shadowBlur = 20; ctx.shadowColor = '#00ffcc';
+        ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(player.x, player.y - 40);
+        ctx.lineTo(player.x - 30, player.y + 20);
+        ctx.lineTo(player.x + 30, player.y + 20);
+        ctx.closePath(); ctx.stroke();
 
-        function checkHit(tx, ty) {
-            enemies.forEach((en, index) => {
-                const dist = Math.sqrt((en.x - tx)**2 + (en.y - ty)**2);
-                if(dist < 40) {
-                    enemies.splice(index, 1);
-                    score += 100;
-                    document.getElementById('currentScore').innerText = score;
+        // 자동 사격 및 엔티티 업데이트
+        if(frame % 8 === 0) bullets.push(new Bullet(player.x, player.y - 40));
+        if(frame % 60 === 0 && !boss) enemies.push(new Enemy());
+        if(score >= 2000 && !boss) { boss = new Enemy(true); enemies.push(boss); }
+
+        bullets.forEach((b, i) => {
+            b.draw();
+            if(b.y < -20) bullets.splice(i, 1);
+        });
+
+        enemies.forEach((e, i) => {
+            e.draw();
+            bullets.forEach((b, bi) => {
+                const dist = Math.hypot(e.x - b.x, e.y - b.y);
+                if(dist < e.size + 10) {
+                    e.hp--; bullets.splice(bi, 1);
+                    if(e.hp <= 0) {
+                        score += e.isBoss ? 5000 : 100;
+                        if(e.isBoss) { boss = null; bossUi.style.display = 'none'; }
+                        enemies.splice(i, 1);
+                        document.getElementById('score').innerText = score.toLocaleString();
+                    }
                 }
             });
-        }
+            if(e.y > height + 100) enemies.splice(i, 1);
+        });
 
-        // 5. 게임 종료 및 데이터 전송 (3번 화면 전환)
-        async function endGame() {
-            isPlaying = false;
-            document.getElementById('gameCanvas').style.display = 'none';
-            document.getElementById('ingame-ui').style.display = 'none';
-            document.getElementById('screen-result').classList.add('active');
-            document.getElementById('finalScore').innerText = score;
+        requestAnimationFrame(loop);
+    }
 
-            // 여기서 실제 AWS Lambda로 POST 요청을 보내 점수를 저장해야 함
-            // (다음 단계에서 Lambda 업데이트 후 연동 예정)
-            document.getElementById('sync-status').innerText = "최종 점수가 기록되었습니다!";
-        }
-
-        init();
-    </script>
+    window.addEventListener('resize', init);
+    init();
+</script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v15.0 - NEBULA</title>
+    <title>NEON SHOOTER v16.0 - FINAL</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #030305; }
         body, html { 
@@ -13,22 +13,23 @@
         }
         canvas { display: block; width: 100%; height: 100%; }
         #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+        
         .hud { padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; }
         .hud-box { 
-            background: rgba(0,0,0,0.7); padding: 12px 24px; border-radius: 20px; 
-            border: 2px solid var(--mint); box-shadow: 0 0 20px var(--mint);
+            background: rgba(0, 255, 204, 0.05); padding: 12px 24px; border-radius: 20px; 
+            border: 2px solid var(--mint); backdrop-filter: blur(10px); box-shadow: 0 0 20px var(--mint);
         }
-        .hud-text { color: var(--mint); font-size: 1.3rem; text-shadow: 0 0 10px var(--mint); letter-spacing: 2px; }
+        .hud-text { color: var(--mint); font-size: 1.4rem; text-shadow: 0 0 10px var(--mint); letter-spacing: 2px; }
         
         #boss-ui { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: 85%; display: none; text-align: center; }
         .boss-tag { color: var(--pink); font-size: 0.8rem; letter-spacing: 5px; margin-bottom: 6px; font-weight: bold; }
         .hp-container { height: 16px; background: rgba(0,0,0,0.9); border: 2px solid var(--pink); border-radius: 25px; overflow: hidden; box-shadow: 0 0 20px var(--pink); }
-        #hp-bar { height: 100%; background: linear-gradient(90deg, var(--pink), #fff); width: 100%; transition: width 0.1s linear; }
+        #hp-bar { height: 100%; background: linear-gradient(90deg, var(--pink), #fff); width: 100%; transition: width 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
         
         #overlay { 
             position: absolute; inset: 0; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; background: rgba(0,0,0,0.8);
-            z-index: 20; pointer-events: auto;
+            align-items: center; justify-content: center; background: rgba(0,0,0,0.85);
+            z-index: 20; pointer-events: auto; backdrop-filter: blur(5px);
         }
         .main-title { color: var(--mint); font-size: 3.5rem; text-shadow: 0 0 30px var(--mint); margin-bottom: 30px; font-style: italic; }
         .start-btn { 
@@ -39,14 +40,14 @@
         .start-btn:active { transform: scale(0.9); background: var(--pink); color: #000; }
     </style>
 </head>
-<body>
+<body onclick="gameLaunch()">
 
 <canvas id="gameCanvas"></canvas>
 
 <div id="ui-layer">
     <div id="overlay">
         <div class="main-title">NEON SHOOTER</div>
-        <button class="start-btn" onclick="gameLaunch()">LAUNCH</button>
+        <button class="start-btn" onclick="gameLaunch()">DEPLOY UNIT</button>
     </div>
     <div class="hud">
         <div class="hud-box"><span class="hud-text" id="score-text">SCORE: 0</span></div>
@@ -55,7 +56,7 @@
         </div>
     </div>
     <div id="boss-ui">
-        <div class="boss-tag">GOD-LEVEL THREAT</div>
+        <div class="boss-tag">ANOMALY DETECTED</div>
         <div class="hp-container"><div id="hp-bar"></div></div>
     </div>
 </div>
@@ -74,11 +75,12 @@
     function init() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
-        player = { x: width/2, y: height + 100, tx: width/2, ty: height-180, scale: 1.5 };
+        player = { x: width/2, y: height + 100, tx: width/2, ty: height-180, scale: 1.5, vx: 0, vy: 0 };
         stars = Array(120).fill().map(() => ({ x: Math.random()*width-width/2, y: Math.random()*height-height/2, z: Math.random()*width }));
     }
 
     function gameLaunch() {
+        if(gameState !== 'READY') return;
         document.getElementById('overlay').style.display = 'none';
         gameState = 'PLAYING';
     }
@@ -113,17 +115,17 @@
             this.dist = 0; this.scale = 0.02;
             this.hp = isBoss ? 500 : 1;
             this.maxHp = this.hp;
-            this.size = isBoss ? 320 : 60;
+            this.size = isBoss ? 350 : 60;
             this.color = isBoss ? '#ffcc00' : (Math.random() > 0.7 ? '#ff00ff' : '#00ffff');
         }
         update() {
-            this.scale *= (this.isBoss ? 1.012 : 1.05);
+            this.scale *= (this.isBoss ? 1.012 : 1.052);
             this.dist += (this.scale * 16);
             this.cx = width/2 + Math.cos(this.angle) * this.dist + (player.x - width/2)*0.1;
             this.cy = height/2 + Math.sin(this.angle) * this.dist;
             if(this.isBoss) {
                 this.cx = width/2 + Math.sin(frame*0.04)*(width*0.35);
-                this.cy = Math.min(height/2 - 100 + Math.cos(frame*0.03)*150, height*0.3);
+                this.cy = Math.min(height/2 - 120 + Math.cos(frame*0.03)*150, height*0.3);
                 document.getElementById('boss-ui').style.display = 'block';
                 document.getElementById('hp-bar').style.width = (this.hp/this.maxHp)*100+'%';
             }
@@ -144,14 +146,21 @@
         ctx.fillStyle = '#010103'; ctx.fillRect(0,0,width,height);
 
         // 3D Deep Dive 배경
-        bgScale += 0.006; if(bgScale > 3.5) bgScale = 1;
+        bgScale += 0.007; if(bgScale > 3.5) bgScale = 1;
         ctx.save(); ctx.translate(width/2, height/2); ctx.scale(bgScale, bgScale);
         ctx.globalAlpha = 0.4;
-        if(assets.bg.complete) ctx.drawImage(assets.bg, -width/2, -height/2, width, height);
+        if(assets.bg.complete && assets.bg.naturalWidth !== 0) {
+            ctx.drawImage(assets.bg, -width/2, -height/2, width, height);
+        } else {
+            // 폴백 배경
+            let grad = ctx.createRadialGradient(0,0,0,0,0,width);
+            grad.addColorStop(0, '#0a0a2a'); grad.addColorStop(1, '#000');
+            ctx.fillStyle = grad; ctx.fillRect(-width/2, -height/2, width, height);
+        }
         ctx.restore(); ctx.globalAlpha = 1;
 
         stars.forEach(s => {
-            s.z -= 28; if(s.z <= 0) s.z = width;
+            s.z -= 30; if(s.z <= 0) s.z = width;
             let x = (s.x / s.z) * width + width/2;
             let y = (s.y / s.z) * height + height/2;
             let sz = (1 - s.z/width) * 12;
@@ -161,18 +170,22 @@
 
         // 플레이어 (Smoothness 정점)
         if(gameState === 'PLAYING') {
-            player.x += (player.tx - player.x) * 0.2;
-            player.y += (player.ty - player.y) * 0.2;
+            player.x += (player.tx - player.x) * 0.22;
+            player.y += (player.ty - player.y) * 0.22;
             player.scale += (1 - player.scale) * 0.15;
         }
 
         ctx.save(); ctx.translate(player.x, player.y); ctx.scale(player.scale, player.scale);
-        // 엔진 이펙트 (BM 디테일)
-        ctx.fillStyle = 'rgba(0, 255, 204, 0.5)';
-        ctx.beginPath(); ctx.moveTo(-20, 40); ctx.lineTo(0, 70 + Math.random()*20); ctx.lineTo(20, 40); ctx.fill();
+        // 동적 엔진 화염
+        ctx.fillStyle = 'rgba(0, 255, 204, 0.6)';
+        ctx.beginPath(); ctx.moveTo(-20, 40); ctx.lineTo(0, 75 + Math.random()*25); ctx.lineTo(20, 40); ctx.fill();
         
-        ctx.shadowBlur = 40; ctx.shadowColor = '#00ffcc';
-        if(assets.player.complete) ctx.drawImage(assets.player, -55, -55, 110, 110);
+        ctx.shadowBlur = 45; ctx.shadowColor = '#00ffcc';
+        if(assets.player.complete && assets.player.naturalWidth !== 0) {
+            ctx.drawImage(assets.player, -55, -55, 110, 110);
+        } else {
+            ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 3; ctx.strokeRect(-40, -40, 80, 80);
+        }
         ctx.restore();
 
         if(gameState === 'PLAYING') {

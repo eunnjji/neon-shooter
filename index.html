@@ -5,131 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NEON SHOOTER</title>
     <style>
-        :root {
-            --neon-mint: #00ffcc;
-            --neon-pink: #ff00ff;
-            --overlay: rgba(0, 0, 0, 0.65);
-        }
-
-        * { -webkit-tap-highlight-color: transparent; outline: none; }
-
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100svh;
-            overflow: hidden; background-color: #000;
-            font-family: 'Pretendard', sans-serif;
-            background-size: cover; background-position: center;
-            transition: background 1s ease-in-out;
-        }
-
-        #ui-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--overlay); backdrop-filter: blur(4px); z-index: 1;
-        }
-
-        #game-ui {
-            position: relative; z-index: 10; height: 100%;
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: space-between; /* 요소 간 간격 균등 분배 */
-            color: white; padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom) 20px;
-            box-sizing: border-box;
-        }
-
-        .header-group { text-align: center; margin-top: 20px; }
-        h1 {
-            color: var(--neon-mint); text-shadow: 0 0 15px var(--neon-mint);
-            font-size: 3rem; margin: 0; font-style: italic; letter-spacing: -1px;
-        }
-
-        .panel-container { width: 100%; display: flex; flex-direction: column; gap: 15px; }
-        .panel {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1.5px solid var(--neon-pink); border-radius: 18px;
-            padding: 18px; box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
-        }
-
-        .panel h3 { margin: 0 0 12px 0; font-size: 1.1rem; color: var(--neon-pink); display: flex; align-items: center; gap: 8px; }
-
-        .progress-bar {
-            width: 100%; height: 14px; background: rgba(255,255,255,0.1);
-            border-radius: 7px; overflow: hidden; margin-top: 10px;
-        }
-        .progress-fill {
-            height: 100%; background: linear-gradient(90deg, var(--neon-mint), #fff);
-            width: 45%; box-shadow: 0 0 10px var(--neon-mint); transition: width 0.4s ease;
-        }
-
-        .test-btn {
-            width: 80%; max-width: 300px; padding: 16px; margin-bottom: 30px;
-            background: transparent; border: 2px solid var(--neon-mint);
-            color: var(--neon-mint); font-weight: bold; font-size: 1.1rem;
-            border-radius: 40px; text-shadow: 0 0 8px var(--neon-mint);
-            box-shadow: 0 0 12px var(--neon-mint); cursor: pointer;
-        }
-
-        .particle {
-            position: absolute; width: 6px; height: 6px; background: var(--neon-mint);
-            border-radius: 50%; box-shadow: 0 0 10px var(--neon-mint);
-            pointer-events: none; animation: explode 0.6s ease-out forwards;
-        }
-        @keyframes explode {
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
-        }
+        :root { --neon-mint: #00ffcc; --neon-pink: #ff00ff; --overlay: rgba(0, 0, 0, 0.7); }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background-color: #000; font-family: sans-serif; background-size: cover; background-position: center; }
+        #ui-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay); backdrop-filter: blur(5px); z-index: 1; }
+        #game-ui { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; color: white; padding: env(safe-area-inset-top) 20px 40px; }
+        h1 { color: var(--neon-mint); text-shadow: 0 0 15px var(--neon-mint); font-size: 2.5rem; margin-top: 20px; font-style: italic; }
+        .panel { background: rgba(255, 255, 255, 0.05); border: 1.5px solid var(--neon-pink); border-radius: 15px; padding: 20px; width: 100%; box-shadow: 0 0 15px rgba(255, 0, 255, 0.2); }
+        .progress-bar { width: 100%; height: 12px; background: #222; border-radius: 6px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { height: 100%; background: var(--neon-mint); width: 0%; transition: width 1s ease; box-shadow: 0 0 10px var(--neon-mint); }
+        .btn { padding: 16px 40px; background: transparent; border: 2px solid var(--neon-mint); color: var(--neon-mint); font-weight: bold; border-radius: 30px; box-shadow: 0 0 10px var(--neon-mint); cursor: pointer; }
+        .particle { position: absolute; width: 6px; height: 6px; background: var(--neon-mint); border-radius: 50%; pointer-events: none; animation: explode 0.6s ease-out forwards; }
+        @keyframes explode { 0% { transform: scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
     </style>
 </head>
 <body onclick="spawn_particles(event)">
     <div id="ui-overlay"></div>
     <div id="game-ui">
-        <div class="header-group">
-            <h1>NEON SHOOTER</h1>
+        <h1>NEON SHOOTER</h1>
+        <div class="panel">
+            <h3 style="margin:0; color:var(--neon-pink);">🏆 RANKING</h3>
+            <div id="rank-list" style="margin-top:10px; font-size:0.9rem;">데이터를 불러오는 중...</div>
         </div>
-
-        <div class="panel-container">
-            <div class="panel">
-                <h3>🏆 TOP RANKERS</h3>
-                <div id="rank-list" style="line-height: 1.6;">
-                    1. Player_A - 9,999<br>
-                    2. Player_B - 8,450
-                </div>
-            </div>
-
-            <div class="panel">
-                <h3>🎯 CURRENT MISSION</h3>
-                적 기체 100대 격추 (45/100)
-                <div class="progress-bar"><div class="progress-fill"></div></div>
-            </div>
+        <div class="panel">
+            <h3 id="m-name" style="margin:0;">🎯 MISSION</h3>
+            <div id="m-status" style="margin-top:10px;">연결 중...</div>
+            <div class="progress-bar"><div id="m-fill" class="progress-fill"></div></div>
         </div>
-
-        <button class="test-btn" onclick="test_clear(event)">MISSION TEST</button>
+        <button class="btn" onclick="fetchData()">DATA REFRESH</button>
     </div>
 
     <script>
-        function apply_theme() {
-            const hour = new Date().getHours();
-            // 새벽 2시~6시 사이면 dawn, 아니면 night
-            const bg = (hour >= 2 && hour <= 6) ? 'assets/bg_dawn.png' : 'assets/bg_night.png';
-            document.body.style.backgroundImage = `url('${bg}')`;
+        const API_URL = "https://te3hlwv09c.execute-api.ap-northeast-2.amazonaws.com/default/NeonShooter_Logic"; // 보안 유지!
+
+        async function fetchData() {
+            try {
+                const res = await fetch(`${API_URL}?user_id=player_01`);
+                const data = await res.json();
+                
+                // 랭킹 업데이트
+                const rankList = document.getElementById('rank-list');
+                rankList.innerHTML = data.rankers.map((r, i) => `${i+1}. ${r.user_id || 'Player'} - ${r.score || 0}`).join('<br>');
+                
+                // 미션 업데이트
+                document.getElementById('m-name').innerText = `🎯 ${data.mission.name}`;
+                document.getElementById('m-status').innerText = `진행도: ${data.mission.prog} / ${data.mission.target}`;
+                document.getElementById('m-fill').style.width = `${(data.mission.prog / data.mission.target) * 100}%`;
+            } catch (e) {
+                console.error("연동 실패:", e);
+            }
         }
 
         function spawn_particles(e) {
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 6; i++) {
                 const p = document.createElement('div');
                 p.className = 'particle';
                 p.style.left = e.clientX + 'px'; p.style.top = e.clientY + 'px';
-                const tx = (Math.random() - 0.5) * 200 + 'px';
-                const ty = (Math.random() - 0.5) * 200 + 'px';
-                p.style.setProperty('--tx', tx); p.style.setProperty('--ty', ty);
+                p.style.setProperty('--tx', (Math.random()-0.5)*200+'px');
+                p.style.setProperty('--ty', (Math.random()-0.5)*200+'px');
                 document.body.appendChild(p);
                 setTimeout(() => p.remove(), 600);
             }
         }
 
-        function test_clear(e) {
-            e.stopPropagation(); // 버튼 클릭 시 바디 파티클 중복 방지
-            alert("미션 클리어 연출 예정!");
+        function apply_theme() {
+            const hour = new Date().getHours();
+            document.body.style.backgroundImage = (hour >= 2 && hour <= 6) ? "url('assets/bg_dawn.png')" : "url('assets/bg_night.png')";
         }
 
         apply_theme();
+        fetchData();
     </script>
 </body>
 </html>

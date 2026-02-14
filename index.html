@@ -39,22 +39,31 @@
         const API_URL = "https://te3hlwv09c.execute-api.ap-northeast-2.amazonaws.com/default/NeonShooter_Logic"; // 보안 유지!
 
         async function fetchData() {
-            try {
-                const res = await fetch(`${API_URL}?user_id=1`);
-                const data = await res.json();
-                
-                // 랭킹 업데이트
-                const rankList = document.getElementById('rank-list');
-                rankList.innerHTML = data.rankers.map((r, i) => `${i+1}. ${r.user_id || 'Player'} - ${r.score || 0}`).join('<br>');
-                
-                // 미션 업데이트
-                document.getElementById('m-name').innerText = `🎯 ${data.mission.name}`;
-                document.getElementById('m-status').innerText = `진행도: ${data.mission.prog} / ${data.mission.target}`;
-                document.getElementById('m-fill').style.width = `${(data.mission.prog / data.mission.target) * 100}%`;
-            } catch (e) {
-                console.error("연동 실패:", e);
-            }
+    try {
+        // 엔드포인트 호출
+        const res = await fetch(API_URL); 
+        const data = await res.json();
+        
+        // 1. 랭킹 업데이트 (nickname과 score 매핑)
+        const rankList = document.getElementById('rank-list');
+        rankList.innerHTML = data.rankers.length > 0 
+            ? data.rankers.map((r, i) => `${i+1}. ${r.nickname || 'Unknown'} - ${r.score.toLocaleString()}`).join('<br>')
+            : "랭커 데이터가 없습니다.";
+        
+        // 2. 미션 업데이트 (name, prog, target 매핑)
+        if (data.mission) {
+            document.getElementById('m-name').innerText = `🎯 ${data.mission.name}`;
+            document.getElementById('m-status').innerText = `진행도: ${data.mission.prog} / ${data.mission.target}`;
+            
+            // 프로그레스 바 계산
+            const percent = (data.mission.prog / data.mission.target) * 100;
+            document.getElementById('m-fill').style.width = `${percent}%`;
         }
+    } catch (e) {
+        console.error("데이터 동기화 실패:", e);
+        document.getElementById('m-status').innerText = "서버 연결 오류";
+    }
+    }
 
         function spawn_particles(e) {
             for (let i = 0; i < 6; i++) {

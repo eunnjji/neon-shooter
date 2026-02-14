@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v37.0 - ABSOLUTE ZERO</title>
+    <title>NEON SHOOTER v38.0 - INTEGRITY</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; }
@@ -25,9 +25,9 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <div style="color:var(--mint); font-size:4rem; font-style:italic; text-shadow:0 0 50px var(--mint); margin-bottom:50px;">NEON SHOOTER</div>
+        <div style="color:var(--mint); font-size:4rem; font-style:italic; text-shadow:0 0 50px var(--mint); margin-bottom:50px;">INTEGRITY</div>
         <button class="main-btn" onclick="startGame()">MISSION START</button>
-        <div id="status" style="margin-top:20px; color:var(--gold); font-size:0.8rem;">V37.0 ABSOLUTE ZERO // BUG FIX COMPLETE</div>
+        <div style="margin-top:20px; color:var(--gold); font-size:0.8rem;">V38.0 READY FOR DB UPDATE</div>
     </div>
 
     <div id="hud">
@@ -36,7 +36,7 @@
     </div>
 
     <div id="boss-ui">
-        <div style="color:var(--pink); font-size:0.9rem; margin-bottom:10px; font-weight:bold;">BOSS ENTITY ENGAGED</div>
+        <div style="color:var(--pink); font-size:0.9rem; margin-bottom:10px; font-weight:bold;">BOSS ENTITY ACTIVE</div>
         <div class="hp-container"><div id="hp-bar"></div></div>
     </div>
 </div>
@@ -104,11 +104,11 @@
             this.cx = centerX + Math.cos(this.angle) * this.dist;
             this.cy = centerY + Math.sin(this.angle) * this.dist;
             
-            // [해결] 화면 밖으로 나가는 순간 완벽하게 제거 플래그
-            if(this.scale > 5) this.active = false;
+            // [해결] 잔상 방지: 화면을 완전히 벗어나기 전 드로잉 중단
+            if(this.scale > 3) this.active = false;
         }
         draw() {
-            if(!this.active || this.scale > 2) return; // 렌더링 세이프티 가드
+            if(!this.active) return;
             ctx.save(); ctx.translate(this.cx, this.cy); ctx.scale(this.scale, this.scale);
             ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#00ffff';
             ctx.lineWidth = 5; ctx.strokeRect(-45, -45, 90, 90);
@@ -119,13 +119,10 @@
     function render() {
         if(!isPlaying) return;
         frame++;
-        
-        // [해결] 캔버스 완전 초기화 (잔상 방지)
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, width, height);
 
-        // 별 배경
         stars.forEach(s => {
             s.z -= 30; if(s.z <= 0) s.z = width;
             let x = (s.x / s.z) * width + centerX;
@@ -134,34 +131,30 @@
             ctx.fillRect(x, y, 2, 2);
         });
 
-        // 1. 공격 (플레이어 뒤 레이어)
         if(frame % 7 === 0) bullets.push(new Bullet(player.x-40, player.y), new Bullet(player.x+40, player.y));
         bullets = bullets.filter(b => b.active);
         bullets.forEach(b => b.draw());
 
-        // 2. 적 및 보스 생성
         if(frame % 40 === 0 && !boss) enemies.push(new Enemy());
         if(score >= bossTrigger && !boss) {
             boss = new Enemy(true); enemies.push(boss);
             document.getElementById('boss-ui').style.display = 'block';
         }
 
-        // 3. 적 업데이트 및 충돌
         enemies.forEach((e, ei) => {
-            e.update();
-            e.draw();
+            e.update(); e.draw();
 
-            // 충돌 판정 (기체 뒤쪽 잔상 방지를 위해 scale 1.5 이하에서만 체크)
-            if(e.active && e.scale > 0.8 && e.scale < 1.5) {
+            // 충돌 판정
+            if(e.active && e.scale > 0.8 && e.scale < 1.2) {
                 if(Math.hypot(e.cx - player.x, e.cy - player.y) < 70) {
-                    hp -= 20; document.getElementById('hp-val').innerText = hp;
-                    if(hp <= 0) location.reload();
+                    hp -= 20; document.getElementById('hp-val').innerText = Math.max(0, hp);
+                    if(hp <= 0) onGameOver();
                     if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display = 'none'; }
                     enemies.splice(ei, 1);
                 }
             }
 
-            // 총알 타격
+            // 탄환 타격
             bullets.forEach((b, bi) => {
                 if(e.active && b.active && Math.hypot(e.cx - b.x, e.cy - b.y) < (e.isBoss ? 150 : 80) * e.scale) {
                     e.hp--; bullets.splice(bi, 1);
@@ -174,23 +167,32 @@
                 }
             });
 
-            // [해결] 보스전 정체 버그 핵심: active가 꺼지면 무조건 boss 변수 리셋
+            // 보스를 놓쳤을 때 (Penalty Logic)
             if(!e.active) {
-                if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display = 'none'; bossTrigger += 5000; }
+                if(e.isBoss) { 
+                    boss = null; 
+                    document.getElementById('boss-ui').style.display = 'none'; 
+                    hp -= 30; // 보스 놓치면 HP 대폭 감소 패널티
+                    document.getElementById('hp-val').innerText = Math.max(0, hp);
+                    if(hp <= 0) onGameOver();
+                    bossTrigger += 5000; 
+                }
                 enemies.splice(ei, 1);
             }
         });
 
-        // 4. 플레이어 (최상위 레이어)
         player.x += (player.tx - player.x) * 0.2;
         player.y += (player.ty - player.y) * 0.2;
-        if(assets.player.complete) {
-            ctx.shadowBlur = 30; ctx.shadowColor = '#00ffcc';
-            ctx.drawImage(assets.player, player.x-60, player.y-60, 120, 120);
-            ctx.shadowBlur = 0;
-        }
+        if(assets.player.complete) ctx.drawImage(assets.player, player.x-60, player.y-60, 120, 120);
 
         requestAnimationFrame(render);
+    }
+
+    function onGameOver() {
+        isPlaying = false;
+        alert(`MISSION FAILED\nFINAL SCORE: ${score}`);
+        // [DBA 가이드] 여기서 AWS API를 호출하여 { pilotId: "MASTER", score: score }를 전송하십시오.
+        location.reload();
     }
 </script>
 </body>

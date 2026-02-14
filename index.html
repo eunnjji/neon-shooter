@@ -3,28 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER - MISSION START</title>
+    <title>NEON SHOOTER - PRO</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --dark: #050505; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: var(--dark); font-family: 'Pretendard', sans-serif; color: white; }
-        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; filter: contrast(1.2) brightness(1.1); }
-        
-        /* 로그인 및 UI 레이어 */
-        #ui-layer { position: absolute; inset: 0; z-index: 10; pointer-events: none; display: flex; flex-direction: column; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: var(--dark); font-family: 'Pretendard', sans-serif; touch-action: none; }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+        #ui-layer { position: absolute; inset: 0; z-index: 10; pointer-events: none; color: white; }
         .interactive { pointer-events: auto; }
 
-        /* 로그인 화면 */
-        #login-screen { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; transition: opacity 0.5s; }
-        .logo { font-size: 3.5rem; font-weight: 900; font-style: italic; color: var(--mint); text-shadow: 0 0 20px var(--mint); margin-bottom: 40px; }
-        .input-box { background: rgba(255,255,255,0.1); border: 2px solid var(--pink); border-radius: 30px; padding: 15px 25px; color: white; font-size: 1.1rem; text-align: center; margin-bottom: 20px; width: 70%; max-width: 300px; }
-        .start-btn { background: var(--pink); border: none; border-radius: 30px; padding: 15px 50px; color: white; font-weight: bold; font-size: 1.2rem; cursor: pointer; box-shadow: 0 0 20px var(--pink); }
+        /* 화면 중앙 메시지 (Warning / Game Over) */
+        #msg-overlay { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; z-index: 30; }
+        .warning { color: var(--pink); font-size: 3rem; font-weight: 900; text-shadow: 0 0 20px var(--pink); animation: blink 0.5s infinite; }
+        .game-over { color: #ff3333; font-size: 3rem; font-weight: 900; text-shadow: 0 0 20px #ff3333; }
+        
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-        /* 인게임 HUD */
-        #hud { display: none; padding: 20px env(safe-area-inset-right) 0 env(safe-area-inset-left); justify-content: space-between; font-weight: bold; font-size: 1.2rem; }
-        .boss-hp-container { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 80%; display: none; }
-        .boss-label { text-align: center; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 5px; color: var(--pink); }
-        .hp-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; border: 1px solid var(--pink); }
-        #hp-fill { height: 100%; background: var(--pink); width: 100%; transition: width 0.2s; }
+        /* HUD & Login (v4.5 디자인 유지/강화) */
+        #login-screen { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 40; }
+        .logo { font-size: 3.5rem; color: var(--mint); text-shadow: 0 0 20px var(--mint); margin-bottom: 30px; font-style: italic; font-weight: 900; }
+        .start-btn { background: var(--pink); border: none; border-radius: 30px; padding: 15px 60px; color: white; font-weight: bold; font-size: 1.2rem; box-shadow: 0 0 20px var(--pink); cursor: pointer; }
+        
+        #hud { display: none; padding: 20px; justify-content: space-between; font-weight: bold; font-size: 1.2rem; }
+        .boss-hp { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 80%; display: none; text-align: center; }
+        .hp-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; border: 1px solid var(--pink); margin-top: 5px; }
+        #hp-fill { height: 100%; background: var(--pink); width: 100%; transition: width 0.1s; }
     </style>
 </head>
 <body>
@@ -34,67 +36,54 @@
 <div id="ui-layer">
     <div id="login-screen" class="interactive">
         <div class="logo">NEON SHOOTER</div>
-        <input type="text" id="user-id" class="input-box" placeholder="ENTER CALLSIGN" value="PILOT_01">
         <button class="start-btn" onclick="startGame()">MISSION START</button>
     </div>
 
     <div id="hud">
         <div style="color: var(--mint)">SCORE: <span id="score">0</span></div>
-        <div style="color: #ff3333">HP: <span id="player-hp">100</span></div>
+        <div style="color: #ff3333">HP: <span id="p-hp">100</span></div>
     </div>
 
-    <div class="boss-hp-container" id="boss-ui">
-        <div class="boss-label">BOSS APPROACHING</div>
+    <div id="msg-overlay" id="msg-box"><div id="msg-text"></div></div>
+
+    <div class="boss-hp" id="boss-ui">
+        <div style="font-size:0.7rem; color:var(--pink); letter-spacing:3px;">BOSS CORE STABILIZING</div>
         <div class="hp-bar"><div id="hp-fill"></div></div>
     </div>
 </div>
 
 <script>
+    const API_URL = "https://te3hlwv09c.execute-api.ap-northeast-2.amazonaws.com/default/";
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const loginScreen = document.getElementById('login-screen');
-    const hud = document.getElementById('hud');
-    const bossUi = document.getElementById('boss-ui');
-
+    
     let width, height, player, bullets = [], enemies = [], stars = [], frame = 0;
-    let isGaming = false, score = 0, boss = null;
+    let isGaming = false, score = 0, boss = null, isGameOver = false;
 
     function init() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
-        player = { x: width / 2, y: height - 150, size: 30, targetX: width / 2 };
-        // 이미지의 속도감을 위한 배경 파티클 (별/차선 효과)
-        stars = Array(40).fill().map(() => ({ x: Math.random() * width, y: Math.random() * height, s: Math.random() * 5 + 2 }));
+        player = { x: width / 2, y: height - 120, targetX: width / 2, hp: 100, size: 25 };
+        // '광속' 느낌을 위한 긴 라인 파티클
+        stars = Array(40).fill().map(() => ({ x: Math.random() * width, y: Math.random() * height, s: Math.random() * 15 + 10 }));
     }
 
-    function startGame() {
-        loginScreen.style.opacity = '0';
-        setTimeout(() => {
-            loginScreen.style.display = 'none';
-            hud.style.display = 'flex';
-            isGaming = true;
-            loop();
-        }, 500);
+    async function startGame() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('hud').style.display = 'flex';
+        isGaming = true;
+        // 비동기 API 호출 (게임 시작 로그)
+        fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'start' }) }).catch(()=>{});
+        loop();
     }
 
-    // 터치/마우스 조종 인식률 최적화
-    window.addEventListener('touchmove', (e) => {
-        if(!isGaming) return;
-        e.preventDefault();
-        player.targetX = e.touches[0].clientX;
-    }, { passive: false });
-    window.addEventListener('mousemove', (e) => {
-        if(!isGaming) return;
-        player.targetX = e.clientX;
-    });
+    window.addEventListener('pointermove', (e) => { if(isGaming && !isGameOver) player.targetX = e.clientX; });
 
     class Bullet {
         constructor(x, y) { this.x = x; this.y = y; }
         draw() {
-            ctx.fillStyle = '#00ffcc';
-            ctx.shadowBlur = 15; ctx.shadowColor = '#00ffcc';
-            ctx.fillRect(this.x - 2, this.y, 4, 20);
-            this.y -= 12;
+            ctx.fillStyle = '#00ffcc'; ctx.shadowBlur = 10; ctx.shadowColor = '#00ffcc';
+            ctx.fillRect(this.x - 2, this.y, 4, 20); this.y -= 15;
         }
     }
 
@@ -103,74 +92,85 @@
             this.isBoss = isBoss;
             this.x = isBoss ? width / 2 : Math.random() * (width - 60) + 30;
             this.y = -100;
-            this.hp = isBoss ? 100 : 1;
-            this.size = isBoss ? 80 : 25;
-            this.speed = isBoss ? 0.5 : 4;
+            this.hp = isBoss ? 60 : 1;
+            this.maxHp = this.hp;
+            this.size = isBoss ? 65 : 22;
+            this.speed = isBoss ? 1.5 : 4.5;
         }
         draw() {
-            ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#ff3333';
-            ctx.lineWidth = 3; ctx.shadowBlur = 20; ctx.shadowColor = ctx.strokeStyle;
+            ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#ff4444';
+            ctx.lineWidth = 3; ctx.shadowBlur = 15; ctx.shadowColor = ctx.strokeStyle;
             ctx.strokeRect(this.x - this.size, this.y - this.size, this.size * 2, this.size * 2);
             this.y += this.speed;
             if(this.isBoss) {
-                this.x += Math.sin(frame * 0.02) * 3;
-                bossUi.style.display = 'block';
-                document.getElementById('hp-fill').style.width = this.hp + '%';
+                if(this.y > height + 100) this.y = -100; // 보스 놓쳐도 재등장
+                document.getElementById('boss-ui').style.display = 'block';
+                document.getElementById('hp-fill').style.width = (this.hp / this.maxHp) * 100 + '%';
             }
         }
     }
 
+    function showMsg(txt, cls, dur) {
+        const box = document.getElementById('msg-overlay');
+        const el = document.getElementById('msg-text');
+        el.innerText = txt; el.className = cls;
+        box.style.display = 'block';
+        if(dur) setTimeout(() => box.style.display = 'none', dur);
+    }
+
     function loop() {
-        if(!isGaming) return;
+        if(!isGaming || isGameOver) return;
         frame++;
-        ctx.fillStyle = 'rgba(5, 5, 5, 0.3)'; // 모션 블러 효과
+        ctx.fillStyle = 'rgba(5, 5, 5, 0.25)';
         ctx.fillRect(0, 0, width, height);
 
-        // 배경 속도감 연출
+        // 배경 광속 연출
         stars.forEach(s => {
-            ctx.fillStyle = 'rgba(0, 255, 204, 0.3)';
-            ctx.fillRect(s.x, s.y, 2, s.s * 2);
-            s.y += s.s * 3;
-            if(s.y > height) s.y = -10;
+            ctx.fillStyle = 'rgba(0, 255, 204, 0.2)';
+            ctx.fillRect(s.x, s.y, 1, s.s * 4);
+            s.y += s.s; if(s.y > height) { s.y = -50; s.x = Math.random() * width; }
         });
 
-        // 플레이어 보간 이동 (부드러운 조종)
         player.x += (player.targetX - player.x) * 0.15;
-
-        // 플레이어 드로잉 (이미지의 네온 기체 스타일)
-        ctx.shadowBlur = 20; ctx.shadowColor = '#00ffcc';
-        ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(player.x, player.y - 40);
-        ctx.lineTo(player.x - 30, player.y + 20);
-        ctx.lineTo(player.x + 30, player.y + 20);
+        
+        // 비행기
+        ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 3; ctx.shadowBlur = 15;
+        ctx.beginPath(); ctx.moveTo(player.x, player.y - 40);
+        ctx.lineTo(player.x - 30, player.y + 20); ctx.lineTo(player.x + 30, player.y + 20);
         ctx.closePath(); ctx.stroke();
 
-        // 자동 사격 및 엔티티 업데이트
         if(frame % 8 === 0) bullets.push(new Bullet(player.x, player.y - 40));
-        if(frame % 60 === 0 && !boss) enemies.push(new Enemy());
-        if(score >= 2000 && !boss) { boss = new Enemy(true); enemies.push(boss); }
+        if(frame % 45 === 0 && !boss) enemies.push(new Enemy());
+        if(score === 2000 && !boss) { boss = new Enemy(true); enemies.push(boss); showMsg("WARNING: BOSS", "warning", 2000); }
 
         bullets.forEach((b, i) => {
-            b.draw();
-            if(b.y < -20) bullets.splice(i, 1);
+            b.draw(); if(b.y < -20) bullets.splice(i, 1);
         });
 
         enemies.forEach((e, i) => {
             e.draw();
+            // 플레이어 충돌 판정 (QA 추가 사항)
+            if(Math.hypot(e.x - player.x, e.y - player.y) < e.size + 20) {
+                player.hp -= 10; enemies.splice(i, 1);
+                document.getElementById('p-hp').innerText = player.hp;
+                if(player.hp <= 0) {
+                    isGameOver = true; showMsg("GAME OVER", "game-over", null);
+                    fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'end', score: score }) }).catch(()=>{});
+                }
+            }
+            // 총알 충돌
             bullets.forEach((b, bi) => {
-                const dist = Math.hypot(e.x - b.x, e.y - b.y);
-                if(dist < e.size + 10) {
+                if(Math.hypot(e.x - b.x, e.y - b.y) < e.size + 15) {
                     e.hp--; bullets.splice(bi, 1);
                     if(e.hp <= 0) {
-                        score += e.isBoss ? 5000 : 100;
-                        if(e.isBoss) { boss = null; bossUi.style.display = 'none'; }
+                        if(e.isBoss) { boss = null; score += 5000; document.getElementById('boss-ui').style.display = 'none'; }
+                        else score += 100;
                         enemies.splice(i, 1);
-                        document.getElementById('score').innerText = score.toLocaleString();
+                        document.getElementById('score').innerText = score;
                     }
                 }
             });
-            if(e.y > height + 100) enemies.splice(i, 1);
+            if(!e.isBoss && e.y > height + 50) enemies.splice(i, 1);
         });
 
         requestAnimationFrame(loop);

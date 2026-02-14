@@ -3,87 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER</title>
+    <title>NEON SHOOTER - PLAY</title>
     <style>
-        :root { --neon-mint: #00ffcc; --neon-pink: #ff00ff; --overlay: rgba(0, 0, 0, 0.7); }
+        :root { --neon-mint: #00ffcc; --neon-pink: #ff00ff; --overlay: rgba(0, 0, 0, 0.8); }
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background-color: #000; font-family: sans-serif; background-size: cover; background-position: center; }
-        #ui-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--overlay); backdrop-filter: blur(5px); z-index: 1; }
-        #game-ui { position: relative; z-index: 10; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; color: white; padding: env(safe-area-inset-top) 20px 40px; }
-        h1 { color: var(--neon-mint); text-shadow: 0 0 15px var(--neon-mint); font-size: 2.5rem; margin-top: 20px; font-style: italic; }
-        .panel { background: rgba(255, 255, 255, 0.05); border: 1.5px solid var(--neon-pink); border-radius: 15px; padding: 20px; width: 100%; box-shadow: 0 0 15px rgba(255, 0, 255, 0.2); }
-        .progress-bar { width: 100%; height: 12px; background: #222; border-radius: 6px; overflow: hidden; margin-top: 10px; }
-        .progress-fill { height: 100%; background: var(--neon-mint); width: 0%; transition: width 1s ease; box-shadow: 0 0 10px var(--neon-mint); }
-        .btn { padding: 16px 40px; background: transparent; border: 2px solid var(--neon-mint); color: var(--neon-mint); font-weight: bold; border-radius: 30px; box-shadow: 0 0 10px var(--neon-mint); cursor: pointer; }
-        .particle { position: absolute; width: 6px; height: 6px; background: var(--neon-mint); border-radius: 50%; pointer-events: none; animation: explode 0.6s ease-out forwards; }
-        @keyframes explode { 0% { transform: scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        
+        /* 공통 배경 */
+        .bg-layer { position: fixed; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: -1; }
+
+        /* 화면 세션 (상태 관리용) */
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: space-around; padding: 40px 20px; z-index: 10; color: white; }
+        .active { display: flex; }
+
+        /* UI 요소 */
+        h1 { color: var(--neon-mint); text-shadow: 0 0 15px var(--neon-mint); font-size: 3rem; font-style: italic; }
+        .panel { background: rgba(255, 255, 255, 0.05); border: 2px solid var(--neon-pink); border-radius: 20px; padding: 20px; width: 100%; box-shadow: 0 0 20px rgba(255, 0, 255, 0.3); text-align: center; }
+        .btn { padding: 20px 50px; background: transparent; border: 2px solid var(--neon-mint); color: var(--neon-mint); font-weight: bold; font-size: 1.2rem; border-radius: 40px; box-shadow: 0 0 15px var(--neon-mint); cursor: pointer; transition: 0.2s; }
+        .btn:active { transform: scale(0.95); background: var(--neon-mint); color: #000; }
+
+        /* 게임 캔버스 */
+        #gameCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; display: none; }
+        #ingame-ui { position: fixed; top: 20px; left: 20px; z-index: 20; color: var(--neon-mint); font-size: 1.5rem; font-weight: bold; text-shadow: 0 0 10px #000; display: none; pointer-events: none; }
     </style>
 </head>
-<body onclick="spawn_particles(event)">
-    <div id="ui-overlay"></div>
-    <div id="game-ui">
+<body>
+    <div class="bg-layer" id="mainBg"></div>
+    
+    <div id="screen-main" class="screen active">
         <h1>NEON SHOOTER</h1>
         <div class="panel">
-            <h3 style="margin:0; color:var(--neon-pink);">🏆 RANKING</h3>
-            <div id="rank-list" style="margin-top:10px; font-size:0.9rem;">데이터를 불러오는 중...</div>
+            <h3 style="color:var(--neon-pink); margin:0;">GLOBAL RANKING</h3>
+            <div id="rank-display" style="margin-top:15px; font-size:1rem; line-height:1.6;">서버 연결 중...</div>
         </div>
+        <button class="btn" onclick="startGame()">MISSION START</button>
+    </div>
+
+    <div id="ingame-ui">SCORE: <span id="currentScore">0</span></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="screen-result" class="screen">
+        <h1>MISSION CLEAR</h1>
         <div class="panel">
-            <h3 id="m-name" style="margin:0;">🎯 MISSION</h3>
-            <div id="m-status" style="margin-top:10px;">연결 중...</div>
-            <div class="progress-bar"><div id="m-fill" class="progress-fill"></div></div>
+            <p>당신의 점수</p>
+            <h2 id="finalScore" style="font-size: 3rem; color: var(--neon-mint); margin: 10px 0;">0</h2>
+            <p id="sync-status" style="color:var(--neon-pink);">데이터 동기화 중...</p>
         </div>
-        <button class="btn" onclick="fetchData()">DATA REFRESH</button>
+        <button class="btn" onclick="location.reload()">MAIN MENU</button>
     </div>
 
     <script>
-        const API_URL = "https://te3hlwv09c.execute-api.ap-northeast-2.amazonaws.com/default/"; // 보안 유지!
+        const API_URL =  "https://te3hlwv09c.execute-api.ap-northeast-2.amazonaws.com/default/";
+        
+        // 게임 상태 변수
+        let canvas, ctx;
+        let score = 0;
+        let isPlaying = false;
+        let player, enemies = [], particles = [];
 
-        async function fetchData() {
-    try {
-        // 엔드포인트 호출
-        const res = await fetch(API_URL); 
-        const data = await res.json();
-        
-        // 1. 랭킹 업데이트 (nickname과 score 매핑)
-        const rankList = document.getElementById('rank-list');
-        rankList.innerHTML = data.rankers.length > 0 
-            ? data.rankers.map((r, i) => `${i+1}. ${r.nickname || 'Unknown'} - ${r.score.toLocaleString()}`).join('<br>')
-            : "랭커 데이터가 없습니다.";
-        
-        // 2. 미션 업데이트 (name, prog, target 매핑)
-        if (data.mission) {
-            document.getElementById('m-name').innerText = `🎯 ${data.mission.name}`;
-            document.getElementById('m-status').innerText = `진행도: ${data.mission.prog} / ${data.mission.target}`;
-            
-            // 프로그레스 바 계산
-            const percent = (data.mission.prog / data.mission.target) * 100;
-            document.getElementById('m-fill').style.width = `${percent}%`;
+        // 1. 초기화 및 배경 설정
+        function init() {
+            const hour = new Date().getHours();
+            const bg = (hour >= 2 && hour <= 6) ? "url('assets/bg_dawn.png')" : "url('assets/bg_night.png')";
+            document.getElementById('mainBg').style.backgroundImage = bg;
+            fetchRanking(); // 시작 시 랭킹 불러오기
         }
-    } catch (e) {
-        console.error("데이터 동기화 실패:", e);
-        document.getElementById('m-status').innerText = "서버 연결 오류";
-    }
-    }
 
-        function spawn_particles(e) {
-            for (let i = 0; i < 6; i++) {
-                const p = document.createElement('div');
-                p.className = 'particle';
-                p.style.left = e.clientX + 'px'; p.style.top = e.clientY + 'px';
-                p.style.setProperty('--tx', (Math.random()-0.5)*200+'px');
-                p.style.setProperty('--ty', (Math.random()-0.5)*200+'px');
-                document.body.appendChild(p);
-                setTimeout(() => p.remove(), 600);
+        // 2. 랭킹 데이터 가져오기 (AWS 연동)
+        async function fetchRanking() {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                const display = document.getElementById('rank-display');
+                display.innerHTML = data.rankers.map((r, i) => `${i+1}. ${r.nickname || 'Unknown'} - ${r.score}`).join('<br>');
+            } catch (e) {
+                console.error(e);
             }
         }
 
-        function apply_theme() {
-            const hour = new Date().getHours();
-            document.body.style.backgroundImage = (hour >= 2 && hour <= 6) ? "url('assets/bg_dawn.png')" : "url('assets/bg_night.png')";
+        // 3. 게임 시작 로직 (화면 전환)
+        function startGame() {
+            document.getElementById('screen-main').classList.remove('active');
+            document.getElementById('gameCanvas').style.display = 'block';
+            document.getElementById('ingame-ui').style.display = 'block';
+            
+            setupCanvas();
+            score = 0;
+            isPlaying = true;
+            enemies = [];
+            animate();
+            
+            // 15초 뒤 게임 종료 (테스트용)
+            setTimeout(endGame, 15000);
         }
 
-        apply_theme();
-        fetchData();
+        // 4. 슈팅 게임 로직 (Canvas 엔진)
+        function setupCanvas() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            player = { x: canvas.width/2, y: canvas.height - 80, size: 30 };
+            
+            // 터치/클릭으로 총 쏘기
+            canvas.onclick = (e) => {
+                if(!isPlaying) return;
+                checkHit(e.clientX, e.clientY);
+            };
+        }
+
+        function animate() {
+            if(!isPlaying) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 적 생성 및 그리기
+            if(Math.random() < 0.05) {
+                enemies.push({ x: Math.random()*canvas.width, y: -50, speed: 3 + Math.random()*5 });
+            }
+            
+            ctx.fillStyle = "#ff00ff";
+            enemies.forEach((en, index) => {
+                en.y += en.speed;
+                ctx.beginPath();
+                ctx.arc(en.x, en.y, 20, 0, Math.PI*2);
+                ctx.fill();
+                
+                if(en.y > canvas.height) enemies.splice(index, 1);
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        function checkHit(tx, ty) {
+            enemies.forEach((en, index) => {
+                const dist = Math.sqrt((en.x - tx)**2 + (en.y - ty)**2);
+                if(dist < 40) {
+                    enemies.splice(index, 1);
+                    score += 100;
+                    document.getElementById('currentScore').innerText = score;
+                }
+            });
+        }
+
+        // 5. 게임 종료 및 데이터 전송 (3번 화면 전환)
+        async function endGame() {
+            isPlaying = false;
+            document.getElementById('gameCanvas').style.display = 'none';
+            document.getElementById('ingame-ui').style.display = 'none';
+            document.getElementById('screen-result').classList.add('active');
+            document.getElementById('finalScore').innerText = score;
+
+            // 여기서 실제 AWS Lambda로 POST 요청을 보내 점수를 저장해야 함
+            // (다음 단계에서 Lambda 업데이트 후 연동 예정)
+            document.getElementById('sync-status').innerText = "최종 점수가 기록되었습니다!";
+        }
+
+        init();
     </script>
 </body>
 </html>

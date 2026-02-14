@@ -3,72 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v8.0 - OVERDRIVE</title>
+    <title>NEON SHOOTER v9.0 - DEEP DIVE</title>
     <style>
-        :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; }
+        :root { --mint: #00ffcc; --pink: #ff00ff; }
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100svh; 
             overflow: hidden; background: #000; touch-action: none;
             overscroll-behavior: none; font-family: 'Arial Black', sans-serif;
         }
-        canvas { display: block; width: 100%; height: 100%; filter: contrast(1.2) saturate(1.2); }
-        
+        canvas { display: block; width: 100%; height: 100%; }
         #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
-        .hud { padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; }
-        .hud-item { color: var(--mint); font-size: 1.4rem; text-shadow: 0 0 15px var(--mint); font-style: italic; }
-        
-        /* 세련된 보스 UI */
-        #boss-ui { 
-            position: absolute; top: 12%; left: 50%; transform: translateX(-50%); 
-            width: 85%; display: none; text-align: center; 
-        }
-        .boss-warning { 
-            color: var(--pink); font-size: 2rem; font-weight: 900; 
-            text-shadow: 0 0 25px var(--pink); animation: blink 0.2s infinite; 
-        }
-        .hp-container { 
-            height: 14px; background: rgba(255, 0, 255, 0.1); border: 1px solid var(--pink); 
-            border-radius: 20px; margin-top: 10px; overflow: hidden; box-shadow: 0 0 15px var(--pink);
-        }
+        .hud { padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; color: var(--mint); text-shadow: 0 0 15px var(--mint); font-size: 1.4rem; }
+        #boss-ui { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: 85%; display: none; text-align: center; }
+        .boss-warning { color: var(--pink); font-size: 2rem; font-weight: 900; text-shadow: 0 0 25px var(--pink); animation: blink 0.2s infinite; }
+        .hp-container { height: 14px; background: rgba(0,0,0,0.8); border: 2px solid var(--pink); border-radius: 20px; margin-top: 10px; overflow: hidden; }
         #hp-bar { height: 100%; background: linear-gradient(90deg, var(--pink), #fff); width: 100%; }
-
-        /* 게임 오버 결과창 (과금 유도 포인트) */
-        #game-over { 
-            position: absolute; inset: 0; background: rgba(0,0,0,0.9); 
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            pointer-events: auto; backdrop-filter: blur(10px);
-        }
-        .result-text { color: #fff; font-size: 3rem; text-shadow: 0 0 30px #ff3333; margin-bottom: 10px; }
-        .final-score { color: var(--gold); font-size: 2rem; margin-bottom: 40px; }
-        .btn { 
-            padding: 18px 50px; background: none; border: 2px solid var(--mint); 
-            color: var(--mint); border-radius: 40px; font-size: 1.3rem; font-weight: bold;
-            cursor: pointer; transition: 0.3s; box-shadow: 0 0 20px var(--mint);
-        }
-        .btn:active { background: var(--mint); color: #000; }
-
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
-<body>
+<body onclick="startDive()">
 
 <canvas id="gameCanvas"></canvas>
 
 <div id="ui-layer">
     <div class="hud">
-        <div id="score-text" class="hud-item">SCORE: 0</div>
-        <div id="hp-text" class="hud-item" style="color: #ff3333; text-shadow: 0 0 15px #ff3333;">HP: 100</div>
+        <div id="score-text">SCORE: 0</div>
+        <div id="hp-text" style="color: #ff3333;">HP: 100</div>
     </div>
-
     <div id="boss-ui">
-        <div class="boss-warning">WARNING: OVERLORD</div>
+        <div class="boss-warning">BOSS CHASE</div>
         <div class="hp-container"><div id="hp-bar"></div></div>
-    </div>
-
-    <div id="game-over">
-        <div class="result-text">MISSION FAILED</div>
-        <div id="final-score" class="final-score">SCORE: 0</div>
-        <button class="btn" onclick="location.reload()">REDEPLOY</button>
     </div>
 </div>
 
@@ -80,155 +44,159 @@
     assets.bg.src = 'assets/bg_night.png';
     assets.player.src = 'assets/player.png';
 
-    let width, height, player, bullets = [], enemies = [], particles = [], speedLines = [], frame = 0;
-    let score = 0, hp = 100, boss = null, bossScoreTrigger = 3000, gameActive = true, shake = 0;
+    let width, height, player, bullets = [], enemies = [], stars = [], frame = 0;
+    let score = 0, hp = 100, boss = null, isDiving = false, shake = 0, bgScale = 1;
 
     function init() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
-        player = { x: width/2, y: height-150, tx: width/2, ty: height-150, vx: 0, vy: 0 };
-        // 고속 질주를 위한 스피드라인 레이어
-        speedLines = Array(25).fill().map(() => ({ x: Math.random()*width, y: Math.random()*height, l: Math.random()*40+20, s: Math.random()*15+10 }));
+        // 초기 플레이어 상태 (화면 아래 숨김)
+        player = { x: width/2, y: height + 100, tx: width/2, ty: height-150, scale: 0.5, opacity: 0 };
+        // 중앙에서 뻗어나가는 3D 스타 파티클
+        stars = Array(80).fill().map(() => ({
+            x: Math.random() * width - width/2,
+            y: Math.random() * height - height/2,
+            z: Math.random() * width,
+            pz: 0
+        }));
+    }
+
+    function startDive() {
+        if(isDiving) return;
+        isDiving = true;
+        // 플레이어 튀어나오는 연출 (Intro)
+        player.opacity = 1;
+        player.scale = 2; // 처음엔 크게
     }
 
     const move = (x, y) => {
-        if(!gameActive) return;
-        player.tx = Math.max(30, Math.min(width-30, x));
-        player.ty = Math.max(100, Math.min(height-100, y-90));
+        if(!isDiving) return;
+        player.tx = Math.max(40, Math.min(width-40, x));
+        player.ty = Math.max(100, Math.min(height-100, y-80));
     };
     window.addEventListener('touchmove', (e) => { e.preventDefault(); move(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
     window.addEventListener('mousemove', (e) => move(e.clientX, e.clientY));
 
-    class Particle {
-        constructor(x, y, color) {
-            this.x = x; this.y = y; this.color = color;
-            this.v = { x: Math.random()*6-3, y: Math.random()*6-3 };
-            this.a = 1;
-        }
-        draw() {
-            ctx.globalAlpha = this.a;
-            ctx.fillStyle = this.color;
-            ctx.beginPath(); ctx.arc(this.x, this.y, 2, 0, Math.PI*2); ctx.fill();
-            this.x += this.v.x; this.y += this.v.y; this.a -= 0.02;
-        }
-    }
-
     class Bullet {
-        constructor(x, y) { this.x = x; this.y = y; }
+        constructor(x, y) { this.x = x; this.y = y; this.s = 1; }
         draw() {
-            ctx.fillStyle = '#fff'; ctx.shadowBlur = 20; ctx.shadowColor = '#00ffcc';
-            ctx.fillRect(this.x - 2, this.y, 4, 25); this.y -= 25;
-            ctx.shadowBlur = 0;
+            this.s += 0.05; // 날아가면서 살짝 커짐 (원근감)
+            ctx.fillStyle = '#fff'; ctx.shadowBlur = 15; ctx.shadowColor = '#00ffcc';
+            ctx.fillRect(this.x - 2*this.s, this.y, 4*this.s, 20);
+            this.y -= 20;
         }
     }
 
     class Enemy {
         constructor(isBoss = false) {
             this.isBoss = isBoss;
-            this.x = isBoss ? width/2 : Math.random()*(width-60)+30;
-            this.y = -120;
+            this.x = isBoss ? width/2 : Math.random()*width;
+            this.y = height/2; // 중앙 소실점에서 등장
+            this.scale = 0.1;
             this.hp = isBoss ? 200 : 1;
-            this.maxHp = this.hp;
-            this.size = isBoss ? 150 : 35;
-            this.v = isBoss ? 0.4 : 4;
-            this.t = 0;
+            this.size = isBoss ? 250 : 40;
+            this.angle = Math.random() * Math.PI * 2;
+            this.dist = 0;
         }
         draw() {
-            this.t += 0.04;
-            ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#ff4444';
-            ctx.lineWidth = 4; ctx.shadowBlur = 25; ctx.shadowColor = ctx.strokeStyle;
+            this.scale += this.isBoss ? 0.005 : 0.02;
+            this.dist += 5;
+            let dx = width/2 + Math.cos(this.angle) * this.dist;
+            let dy = height/2 + Math.sin(this.angle) * this.dist;
             
-            let dx = this.isBoss ? this.x + Math.sin(this.t)*100 : this.x;
-            let dy = this.isBoss ? Math.min(this.y, 200) : this.y;
-            this.y += this.v;
-            
-            ctx.strokeRect(dx-this.size/2, dy-this.size/2, this.size, this.size);
             if(this.isBoss) {
+                dx = width/2 + Math.sin(frame*0.02) * (width*0.3);
+                dy = height/2 + Math.cos(frame*0.02) * (height*0.2);
                 document.getElementById('boss-ui').style.display = 'block';
-                document.getElementById('hp-bar').style.width = (this.hp/this.maxHp)*100+'%';
+                document.getElementById('hp-bar').style.width = (this.hp/200)*100+'%';
             }
-            this.cx = dx; this.cy = dy;
-            ctx.shadowBlur = 0;
+
+            ctx.save();
+            ctx.translate(dx, dy);
+            ctx.scale(this.scale, this.scale);
+            ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#ff4444';
+            ctx.lineWidth = 5; ctx.shadowBlur = 20; ctx.shadowColor = ctx.strokeStyle;
+            ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+            ctx.restore();
+            
+            this.curX = dx; this.curY = dy; this.curSize = this.size * this.scale;
         }
     }
 
     function render() {
-        if(!gameActive) return;
         frame++;
-        if (shake > 0) { ctx.setTransform(1,0,0,1,Math.random()*12-6, Math.random()*12-6); shake--; }
+        if (shake > 0) { ctx.setTransform(1,0,0,1,Math.random()*10-5, Math.random()*10-5); shake--; }
         else { ctx.setTransform(1,0,0,1,0,0); }
 
-        ctx.fillStyle = '#050505'; ctx.fillRect(0,0,width,height);
+        ctx.fillStyle = '#000'; ctx.fillRect(0,0,width,height);
 
-        // [배경 전문가] 다층 패럴랙스 & 스피드라인
-        if(assets.bg.complete) {
-            ctx.globalAlpha = 0.4;
-            let bgY = (frame * 1.5) % height;
-            ctx.drawImage(assets.bg, 0, bgY-height, width, height);
-            ctx.drawImage(assets.bg, 0, bgY, width, height);
+        // [배경 전문가] 구글 맵스 스타일 확대 배경
+        bgScale += 0.002; if(bgScale > 2) bgScale = 1;
+        ctx.save();
+        ctx.translate(width/2, height/2);
+        ctx.scale(bgScale, bgScale);
+        ctx.globalAlpha = 0.4;
+        if(assets.bg.complete) ctx.drawImage(assets.bg, -width/2, -height/2, width, height);
+        ctx.restore();
+
+        // 3D 워프 파티클 (앞으로 튀어나오는 느낌)
+        ctx.fillStyle = '#00ffcc';
+        stars.forEach(s => {
+            s.z -= 12; if(s.z <= 0) s.z = width;
+            let x = (s.x / s.z) * width + width/2;
+            let y = (s.y / s.z) * height + height/2;
+            let sz = (1 - s.z/width) * 8;
+            ctx.beginPath(); ctx.arc(x, y, sz, 0, Math.PI*2); ctx.fill();
+        });
+
+        // 플레이어 (인트로 시 앞으로 튀어나옴)
+        if(isDiving) {
+            player.x += (player.tx - player.x) * 0.15;
+            player.y += (player.ty - player.y) * 0.15;
+            player.scale += (1 - player.scale) * 0.1;
         }
         
-        ctx.fillStyle = 'rgba(0, 255, 204, 0.3)';
-        speedLines.forEach(l => {
-            ctx.fillRect(l.x, l.y, 1, l.l);
-            l.y += l.s; if(l.y > height) { l.y = -100; l.x = Math.random()*width; }
-        });
-        ctx.globalAlpha = 1;
-
-        // 플레이어 (Lerp 조작감 개선)
-        player.x += (player.tx - player.x) * 0.15;
-        player.y += (player.ty - player.y) * 0.15;
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        ctx.scale(player.scale, player.scale);
         ctx.shadowBlur = 30; ctx.shadowColor = '#00ffcc';
-        if(assets.player.complete) ctx.drawImage(assets.player, player.x-50, player.y-50, 100, 100);
-        ctx.shadowBlur = 0;
+        if(assets.player.complete) ctx.drawImage(assets.player, -50, -50, 100, 100);
+        ctx.restore();
 
-        // 적 & 총알 로직
-        if(frame % 7 === 0) bullets.push(new Bullet(player.x, player.y-50));
-        if(frame % 45 === 0 && !boss) enemies.push(new Enemy());
-        if(score >= bossScoreTrigger && !boss) { boss = new Enemy(true); enemies.push(boss); }
+        // 게임 로직
+        if(isDiving && frame % 8 === 0) bullets.push(new Bullet(player.x, player.y - 50));
+        if(isDiving && frame % 40 === 0 && !boss) enemies.push(new Enemy());
+        if(score >= 3000 && !boss) { boss = new Enemy(true); enemies.push(boss); }
 
         bullets.forEach((b, bi) => {
-            b.draw(); if(b.y < -50) bullets.splice(bi, 1);
+            b.draw(); if(b.y < -100) bullets.splice(bi, 1);
         });
 
         enemies.forEach((e, ei) => {
             e.draw();
-            // 충돌 시 파티클 생성 (QA/기획 피드백)
-            if(Math.hypot(e.cx-player.x, e.cy-player.y) < e.size/2 + 25) {
-                hp -= 10; shake = 15;
-                document.getElementById('hp-text').innerText = `HP: ${Math.max(0, hp)}`;
-                if(hp <= 0) endGame();
+            // 충돌 판정 (원근법 고려)
+            if(isDiving && e.scale > 0.8 && Math.hypot(e.curX-player.x, e.curY-player.y) < e.curSize/2 + 30) {
+                hp -= 5; shake = 10;
+                if(hp <= 0) location.reload();
             }
-
             bullets.forEach((b, bi) => {
-                if(Math.hypot(e.cx-b.x, e.cy-b.y) < e.size/1.4) {
+                if(Math.hypot(e.curX-b.x, e.curY-b.y) < e.curSize/1.5) {
                     e.hp--; bullets.splice(bi, 1);
-                    // 타격 파티클
-                    for(let i=0; i<3; i++) particles.push(new Particle(b.x, b.y, e.isBoss ? '#ff00ff' : '#00ffcc'));
                     if(e.hp <= 0) {
                         score += e.isBoss ? 10000 : 100;
-                        if(e.isBoss) { boss=null; document.getElementById('boss-ui').style.display='none'; bossScoreTrigger+=15000; }
+                        if(e.isBoss) { boss=null; document.getElementById('boss-ui').style.display='none'; }
                         enemies.splice(ei, 1);
-                        document.getElementById('score-text').innerText = `SCORE: ${score.toLocaleString()}`;
+                        document.getElementById('score-text').innerText = "SCORE: " + score.toLocaleString();
                     }
                 }
             });
-            if(e.y > height + 200) { if(e.isBoss) { boss=null; document.getElementById('boss-ui').style.display='none'; } enemies.splice(ei, 1); }
+            if(e.scale > 3) enemies.splice(ei, 1);
         });
-
-        particles.forEach((p, pi) => { p.draw(); if(p.a <= 0) particles.splice(pi, 1); });
 
         requestAnimationFrame(render);
     }
 
-    function endGame() {
-        gameActive = false;
-        document.getElementById('game-over').style.display = 'flex';
-        document.getElementById('final-score').innerText = `FINAL SCORE: ${score.toLocaleString()}`;
-    }
-
-    init();
-    assets.bg.onload = render;
+    init(); render();
     window.onresize = init;
 </script>
 </body>

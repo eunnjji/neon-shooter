@@ -3,41 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v12.0 - SUPERNOVA</title>
+    <title>NEON SHOOTER v13.0 - ENDGAME</title>
     <style>
-        :root { --mint: #00ffcc; --pink: #ff00ff; --cyan: #00ffff; }
+        :root { --mint: #00ffcc; --pink: #ff00ff; --cyan: #00ffff; --gold: #ffcc00; }
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100svh; 
             overflow: hidden; background: #000; touch-action: none;
             overscroll-behavior: none; font-family: 'Arial Black', sans-serif;
         }
         canvas { display: block; width: 100%; height: 100%; }
-        #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; border: 2px solid rgba(0, 255, 204, 0.2); box-sizing: border-box; }
+        #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
         .hud { padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; }
-        .hud-box { background: rgba(0,0,0,0.6); padding: 8px 20px; border-radius: 15px; border: 1px solid var(--mint); }
-        .hud div { color: var(--mint); font-size: 1.3rem; text-shadow: 0 0 10px var(--mint); }
+        .hud-box { background: rgba(0,0,0,0.6); padding: 8px 18px; border-radius: 12px; border: 1.5px solid var(--mint); box-shadow: 0 0 10px var(--mint); }
+        .hud div { color: var(--mint); font-size: 1.2rem; text-shadow: 0 0 8px var(--mint); }
         
         #boss-ui { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); width: 85%; display: none; }
-        .hp-container { height: 18px; background: rgba(0,0,0,0.8); border: 2px solid var(--pink); border-radius: 10px; overflow: hidden; box-shadow: 0 0 15px var(--pink); }
-        #hp-bar { height: 100%; background: linear-gradient(90deg, #ff00ff, #fff); width: 100%; transition: width 0.1s; }
+        .hp-container { height: 16px; background: rgba(0,0,0,0.8); border: 2px solid var(--pink); border-radius: 8px; overflow: hidden; }
+        #hp-bar { height: 100%; background: linear-gradient(90deg, var(--pink), #fff); width: 100%; }
         
-        #status-msg { position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%); color: var(--cyan); font-size: 0.9rem; letter-spacing: 3px; opacity: 0.7; }
+        #overlay-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--gold); font-size: 3rem; text-shadow: 0 0 20px var(--gold); text-align: center; }
     </style>
 </head>
-<body onclick="gameStart()">
+<body onclick="handleAction()">
 
 <canvas id="gameCanvas"></canvas>
 
 <div id="ui-layer">
+    <div id="overlay-msg">READY?</div>
     <div class="hud">
         <div class="hud-box" id="score-text">SCORE: 0</div>
         <div class="hud-box" id="hp-text" style="color: #ff3333; border-color: #ff3333;">HP: 100</div>
     </div>
     <div id="boss-ui">
-        <div style="color:var(--pink); text-align:center; font-weight:bold; margin-bottom:5px;">[BOSS] NEON LEVIATHAN</div>
+        <div style="color:var(--pink); text-align:center; font-size:0.7rem; margin-bottom:4px; letter-spacing:2px;">BOSS OVERDRIVE ACTIVE</div>
         <div class="hp-container"><div id="hp-bar"></div></div>
     </div>
-    <div id="status-msg">NEURAL LINK STANDBY...</div>
 </div>
 
 <script>
@@ -49,51 +49,63 @@
     assets.player.src = 'assets/player.png';
 
     let width, height, player, bullets = [], enemies = [], stars = [], explosions = [];
-    let score = 0, hp = 100, isPlaying = false, shake = 0, bgScale = 1, boss = null;
-    let frame = 0, bossStage = 5000;
+    let score = 0, hp = 100, gameState = 'READY', shake = 0, bgScale = 1, boss = null, frame = 0;
 
     function init() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
-        player = { x: width/2, y: height + 100, tx: width/2, ty: height-150, scale: 2, alpha: 0 };
-        stars = Array(120).fill().map(() => ({
-            x: Math.random() * width - width/2,
-            y: Math.random() * height - height/2,
-            z: Math.random() * width
-        }));
+        player = { x: width/2, y: height + 100, tx: width/2, ty: height-150, scale: 2, tilt: 0 };
+        stars = Array(120).fill().map(() => ({ x: Math.random()*width-width/2, y: Math.random()*height-height/2, z: Math.random()*width }));
     }
 
-    function gameStart() {
-        if(isPlaying) return;
-        isPlaying = true;
-        document.getElementById('status-msg').innerText = "SYSTEM ACTIVE";
-        setTimeout(() => document.getElementById('status-msg').style.display = 'none', 2000);
+    function handleAction() {
+        if(gameState === 'READY') {
+            gameState = 'STARTING';
+            let count = 3;
+            let timer = setInterval(() => {
+                document.getElementById('overlay-msg').innerText = count;
+                count--;
+                if(count < 0) {
+                    clearInterval(timer);
+                    document.getElementById('overlay-msg').innerText = "GO!";
+                    setTimeout(() => { document.getElementById('overlay-msg').style.display = 'none'; gameState = 'PLAYING'; }, 500);
+                }
+            }, 800);
+        }
     }
 
     window.addEventListener('touchmove', (e) => {
-        if(!isPlaying) return;
+        if(gameState !== 'PLAYING') return;
         e.preventDefault();
         player.tx = Math.max(50, Math.min(width-50, e.touches[0].clientX));
         player.ty = Math.max(150, Math.min(height-100, e.touches[0].clientY - 80));
+        player.tilt = (player.tx - width/2) * 0.05; // [배경] 틸트 효과
     }, { passive: false });
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x; this.y = y; this.color = color;
+            this.v = { x: Math.random()*10-5, y: Math.random()*10-5 };
+            this.a = 1;
+        }
+        draw() {
+            ctx.globalAlpha = this.a; ctx.fillStyle = this.color;
+            ctx.beginPath(); ctx.arc(this.x, this.y, 3, 0, Math.PI*2); ctx.fill();
+            this.x += this.v.x; this.y += this.v.y; this.a -= 0.03;
+        }
+    }
 
     class Bullet {
         constructor(isRight) {
-            this.x = player.x + (isRight ? 30 : -30);
-            this.y = player.y;
-            this.z = 100; // 원근감 시작점
-            this.vx = (this.x - width/2) * -0.02; // 소실점으로 빨려 들어가는 느낌
-            this.vy = (height/2 - this.y) * 0.05;
-        }
-        update() {
-            this.z -= 5;
-            this.x += this.vx;
-            this.y += this.vy;
+            this.x = player.x + (isRight ? 35 : -35); this.y = player.y;
+            this.scale = 1;
+            this.vx = (this.x - width/2) * -0.04;
+            this.vy = (height/2 - this.y) * 0.06;
         }
         draw() {
-            let s = 10 / (this.z / 100);
+            this.scale -= 0.01; this.x += this.vx; this.y += this.vy;
             ctx.fillStyle = '#fff'; ctx.shadowBlur = 15; ctx.shadowColor = '#00ffcc';
-            ctx.beginPath(); ctx.arc(this.x, this.y, 2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(this.x, this.y, 3, 0, Math.PI*2); ctx.fill();
         }
     }
 
@@ -101,29 +113,28 @@
         constructor(isBoss = false) {
             this.isBoss = isBoss;
             this.angle = Math.random() * Math.PI * 2;
-            this.dist = 0;
-            this.scale = 0.01;
-            this.hp = isBoss ? 400 : 1;
+            this.dist = 0; this.scale = 0.01;
+            this.hp = isBoss ? 500 : 1;
             this.maxHp = this.hp;
-            this.size = isBoss ? 250 : 60;
+            this.size = isBoss ? 300 : 60;
+            this.color = isBoss ? '#ffcc00' : (Math.random() > 0.8 ? '#ff00ff' : '#00ffff');
         }
         update() {
-            this.scale *= (this.isBoss ? 1.01 : 1.04);
-            this.dist += (this.scale * 15);
-            this.cx = width/2 + Math.cos(this.angle) * this.dist;
+            this.scale *= (this.isBoss ? 1.012 : 1.045);
+            this.dist += (this.scale * 16);
+            this.cx = width/2 + Math.cos(this.angle) * this.dist + player.tilt;
             this.cy = height/2 + Math.sin(this.angle) * this.dist;
 
             if(this.isBoss) {
-                this.cx = width/2 + Math.sin(frame*0.03) * (width*0.3);
-                this.cy = Math.min(height/2 + Math.cos(frame*0.03) * 100, height*0.3);
+                this.cx = width/2 + Math.sin(frame*0.04) * (width*0.3);
+                this.cy = Math.min(height/2 + Math.cos(frame*0.04) * 100, height*0.25);
                 document.getElementById('boss-ui').style.display = 'block';
                 document.getElementById('hp-bar').style.width = (this.hp/this.maxHp)*100+'%';
             }
         }
         draw() {
             ctx.save(); ctx.translate(this.cx, this.cy); ctx.scale(this.scale, this.scale);
-            ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#ff3333';
-            ctx.lineWidth = 4; ctx.shadowBlur = 20; ctx.shadowColor = ctx.strokeStyle;
+            ctx.strokeStyle = this.color; ctx.lineWidth = 5; ctx.shadowBlur = 20; ctx.shadowColor = this.color;
             ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
             ctx.restore();
         }
@@ -131,75 +142,71 @@
 
     function render() {
         frame++;
-        if (shake > 0) { ctx.setTransform(1,0,0,1,Math.random()*14-7, Math.random()*14-7); shake--; }
+        if (shake > 0) { ctx.setTransform(1,0,0,1,Math.random()*16-8, Math.random()*16-8); shake--; }
         else { ctx.setTransform(1,0,0,1,0,0); }
 
         ctx.fillStyle = '#000'; ctx.fillRect(0,0,width,height);
 
-        // 3D Grid 배경 (공간감 핵심)
-        bgScale += 0.003; if(bgScale > 3) bgScale = 1;
-        ctx.save(); ctx.translate(width/2, height/2); ctx.scale(bgScale, bgScale);
-        ctx.globalAlpha = 0.3;
+        // [배경 전문가] 공간감 워프
+        bgScale += 0.004; if(bgScale > 3.5) bgScale = 1;
+        ctx.save(); ctx.translate(width/2 + player.tilt, height/2); ctx.scale(bgScale, bgScale);
+        ctx.globalAlpha = 0.35;
         if(assets.bg.complete) ctx.drawImage(assets.bg, -width/2, -height/2, width, height);
         ctx.restore(); ctx.globalAlpha = 1;
 
-        // 워프 파티클
         stars.forEach(s => {
-            s.z -= 20; if(s.z <= 0) s.z = width;
-            let x = (s.x / s.z) * width + width/2;
+            s.z -= 25; if(s.z <= 0) s.z = width;
+            let x = (s.x / s.z) * width + width/2 + player.tilt;
             let y = (s.y / s.z) * height + height/2;
-            let sz = (1 - s.z/width) * 8;
+            let sz = (1 - s.z/width) * 10;
             ctx.fillStyle = `rgba(0, 255, 204, ${1 - s.z/width})`;
             ctx.beginPath(); ctx.arc(x, y, sz, 0, Math.PI*2); ctx.fill();
         });
 
         // 플레이어
-        if(isPlaying) {
-            player.x += (player.tx - player.x) * 0.15;
-            player.y += (player.ty - player.y) * 0.15;
+        if(gameState === 'STARTING' || gameState === 'PLAYING') {
+            player.x += (player.tx - player.x) * 0.16;
+            player.y += (player.ty - player.y) * 0.16;
             player.scale += (1 - player.scale) * 0.1;
-            player.alpha = 1;
         }
 
         ctx.save(); ctx.translate(player.x, player.y); ctx.scale(player.scale, player.scale);
-        ctx.globalAlpha = player.alpha;
         ctx.shadowBlur = 30; ctx.shadowColor = '#00ffcc';
         if(assets.player.complete) ctx.drawImage(assets.player, -55, -55, 110, 110);
         ctx.restore();
 
-        if(isPlaying) {
-            if(frame % 8 === 0) { bullets.push(new Bullet(false), new Bullet(true)); }
-            if(frame % 40 === 0 && !boss) enemies.push(new Enemy());
-            if(score >= bossStage && !boss) boss = new Enemy(true), enemies.push(boss);
+        if(gameState === 'PLAYING') {
+            if(frame % 7 === 0) bullets.push(new Bullet(false), new Bullet(true));
+            if(frame % 35 === 0 && !boss) enemies.push(new Enemy());
+            if(score >= 5000 && !boss) boss = new Enemy(true), enemies.push(boss);
 
             bullets.forEach((b, bi) => {
-                b.update(); b.draw();
-                if(b.z < 10) bullets.splice(bi, 1);
+                b.draw(); if(b.scale < 0.1) bullets.splice(bi, 1);
             });
 
             enemies.forEach((e, ei) => {
                 e.update(); e.draw();
-                // 충돌 판정 (원근 보정)
-                let hitBox = (e.size * e.scale) / 1.6;
-                if(e.scale > 0.7 && Math.hypot(e.cx - player.x, e.cy - player.y) < hitBox + 30) {
-                    hp -= e.isBoss ? 1 : 10; shake = 15;
+                let hitBox = (e.size * e.scale) / 1.5;
+                if(e.scale > 0.75 && Math.hypot(e.cx - player.x, e.curY - player.y) < hitBox + 30) {
+                    hp -= e.isBoss ? 1 : 15; shake = 20;
                     document.getElementById('hp-text').innerText = "HP: " + Math.max(0, hp);
                     if(hp <= 0) location.reload();
                 }
-                // 공격 판정
                 bullets.forEach((b, bi) => {
                     if(Math.hypot(e.cx - b.x, e.cy - b.y) < hitBox + 10) {
                         e.hp--; bullets.splice(bi, 1);
                         if(e.hp <= 0) {
                             score += e.isBoss ? 20000 : 100;
-                            if(e.isBoss) { boss=null; document.getElementById('boss-ui').style.display='none'; bossStage += 20000; }
+                            for(let i=0; i<10; i++) explosions.push(new Particle(e.cx, e.cy, e.color));
+                            if(e.isBoss) { boss=null; document.getElementById('boss-ui').style.display='none'; score += 50000; }
                             enemies.splice(ei, 1);
                             document.getElementById('score-text').innerText = "SCORE: " + score.toLocaleString();
                         }
                     }
                 });
-                if(e.scale > 8) enemies.splice(ei, 1);
+                if(e.scale > 10) enemies.splice(ei, 1);
             });
+            explosions.forEach((p, pi) => { p.draw(); if(p.a <= 0) explosions.splice(pi, 1); });
         }
         requestAnimationFrame(render);
     }

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON SHOOTER</title>
+    <style>
+        :root {
+            --neon-mint: #00ffcc;
+            --neon-pink: #ff00ff;
+            --overlay-dark: rgba(0, 0, 0, 0.6);
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #000;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            transition: background 1s ease-in-out;
+            background-size: cover; background-position: center;
+        }
+
+        /* 가독성을 위한 오버레이 레이어 */
+        #ui-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--overlay-dark);
+            backdrop-filter: blur(5px); z-index: 1;
+        }
+
+        /* 메인 게임 UI 컨테이너 */
+        #game-ui {
+            position: relative; z-index: 10; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            color: white; padding: 20px; box-sizing: border-box;
+        }
+
+        h1 {
+            color: var(--neon-mint); text-shadow: 0 0 10px var(--neon-mint);
+            font-size: 2.5rem; margin-bottom: 10px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1); border: 1px solid var(--neon-pink);
+            border-radius: 10px; padding: 15px; width: 90%; margin-bottom: 15px;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
+        }
+
+        .mission-row { margin: 10px 0; }
+        .progress-bar {
+            width: 100%; height: 10px; background: #333; border-radius: 5px;
+            overflow: hidden; margin-top: 5px;
+        }
+        .progress-fill {
+            height: 100%; background: var(--neon-mint); width: 0%;
+            transition: width 0.5s ease; box-shadow: 0 0 10px var(--neon-mint);
+        }
+
+        /* 파티클 및 텍스트 효과 */
+        .particle {
+            position: absolute; width: 6px; height: 6px;
+            background: var(--neon-mint); border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-mint); pointer-events: none;
+            animation: explode 0.8s ease-out forwards;
+        }
+        @keyframes explode {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+
+        #clear-msg {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 2.5rem; color: var(--neon-pink); font-weight: bold;
+            text-shadow: 0 0 20px var(--neon-pink); display: none; z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui-overlay"></div>
+<div id="game-ui">
+    <h1>NEON SHOOTER</h1>
+    
+    <div class="panel">
+        <h3>🏆 GLOBAL RANKING</h3>
+        <div id="rank-list">Loading...</div>
+    </div>
+
+    <div class="panel">
+        <h3>🎯 MISSIONS</h3>
+        <div id="mission-container"></div>
+    </div>
+
+    <div class="panel">
+        <h3>🎒 INVENTORY</h3>
+        <div id="inv-list">Empty</div>
+    </div>
+
+    <button onclick="simulate_kill()" style="padding: 15px; background: var(--neon-pink); border: none; color: white; border-radius: 5px; cursor: pointer;">TEST:

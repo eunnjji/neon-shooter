@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.69 - MASTER DBA EDITION</title>
+    <title>NEON SHOOTER v0.70 - GENESIS INTEGRITY</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; color: white; }
@@ -12,22 +12,23 @@
         .interactive { pointer-events: auto; }
         
         #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.98); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(40px); transition: 0.8s; }
-        .main-btn { padding: 18px 70px; background: transparent; border: 3.5px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.5rem; cursor: pointer; box-shadow: 0 0 25px var(--mint); transition: 0.3s; letter-spacing: 5px; margin-bottom: 25px; }
+        .main-btn { padding: 18px 70px; background: transparent; border: 3.5px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.5rem; cursor: pointer; box-shadow: 0 0 30px var(--mint); transition: 0.3s; letter-spacing: 5px; margin-bottom: 25px; }
         
         #rank-board { width: 320px; background: rgba(0, 255, 204, 0.05); border: 2px solid rgba(0, 255, 204, 0.3); border-radius: 20px; padding: 25px; margin-bottom: 30px; }
-        .rank-title { color: var(--mint); font-size: 1.2rem; text-align: center; margin-bottom: 20px; letter-spacing: 5px; }
+        .rank-title { color: var(--mint); font-size: 1.2rem; text-align: center; margin-bottom: 20px; letter-spacing: 5px; text-shadow: 0 0 10px var(--mint); }
         .rank-item { display: flex; justify-content: space-between; margin-bottom: 12px; font-family: 'Courier New', monospace; font-size: 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
         
         #hud { position: absolute; top: 0; width: 100%; padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; }
-        .hud-box { background: rgba(0, 0, 0, 0.8); border: 2px solid var(--mint); padding: 10px 20px; border-radius: 20px; }
-        #exit-btn { background: rgba(255, 0, 255, 0.15); border: 2.5px solid var(--pink); color: var(--pink); padding: 10px 20px; border-radius: 20px; font-weight: bold; pointer-events: auto; cursor: pointer; }
-        
+        .hud-box { background: rgba(0, 0, 0, 0.85); border: 2px solid var(--mint); padding: 10px 20px; border-radius: 20px; font-size: 1rem; }
+        #exit-btn { background: rgba(255, 0, 255, 0.15); border: 2.5px solid var(--pink); color: var(--pink); padding: 10px 20px; border-radius: 20px; font-weight: bold; pointer-events: auto; cursor: pointer; transition: 0.2s; }
+        #exit-btn:active { background: var(--pink); color: white; }
+
         #boss-ui { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: 80%; display: none; }
-        .hp-container { height: 10px; background: rgba(255, 0, 255, 0.1); border: 1px solid var(--pink); border-radius: 10px; overflow: hidden; }
-        #hp-bar { height: 100%; background: var(--pink); width: 100%; }
+        .hp-container { height: 12px; background: rgba(255, 0, 255, 0.15); border: 1.5px solid var(--pink); border-radius: 10px; overflow: hidden; }
+        #hp-bar { height: 100%; background: linear-gradient(90deg, #ff00ff, #ff88ff); width: 100%; }
         
         #damage-flash { position: absolute; inset: 0; background: rgba(255, 0, 0, 0.25); display: none; pointer-events: none; z-index: 50; }
-        .loading { text-align: center; color: var(--mint); font-size: 0.8rem; animation: blink 1s infinite; }
+        .loading { text-align: center; color: var(--mint); font-size: 0.8rem; animation: blink 1s infinite; letter-spacing: 2px; }
         @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     </style>
 </head>
@@ -38,13 +39,13 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <div class="rank-title">NS_MASTER_v69</div>
+        <div class="rank-title">NS_DATA_SYSTEM_v70</div>
         <div id="rank-board">
-            <div id="rank-list"><div class="loading">HANDSHAKING_WITH_DYNAMO...</div></div>
+            <div id="rank-list"><div class="loading">SYNCING_CLOUD_RECORDS...</div></div>
         </div>
-        <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem;" value="PILOT_DBA">
+        <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem;" value="PILOT_MASTER">
         <button id="start-btn" class="main-btn" onclick="startGame()">MISSION START</button>
-        <div id="infra-msg" style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">ACID_TRANSACTION: ENABLED</div>
+        <div id="infra-status" style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">DYNAMO_DB: CONNECTED</div>
     </div>
 
     <div id="hud">
@@ -63,7 +64,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const assets = { bg: new Image(), player: new Image() };
-    let width, height, centerX, centerY, player, bullets = [], enemies = [], stars = [], frame = 0, score = 0, hp = 100, isPlaying = false, boss = null, bossTrigger = 3000;
+    let width, height, centerX, centerY, player, bullets = [], enemies = [], stars = [], frame = 0, score = 0, hp = 100, isPlaying = false, boss = null, bossTrigger = 5000;
 
     function initAssets() {
         assets.bg.src = 'assets/bg_night.png';
@@ -74,7 +75,11 @@
     async function fetchRankings() {
         const rankList = document.getElementById('rank-list');
         try {
-            const response = await fetch(`${API_URL}?t=${Date.now()}`, { method: 'GET', mode: 'cors' });
+            const response = await fetch(`${API_URL}?cache=${Date.now()}`, { 
+                method: 'GET', 
+                mode: 'cors',
+                headers: { 'Accept': 'application/json' }
+            });
             if (!response.ok) throw new Error();
             const data = await response.json();
             const items = Array.isArray(data) ? data : (data.Items || []);
@@ -85,7 +90,7 @@
                 div.innerHTML = `<span>${i+1}. ${item.ns_pilot_id}</span><span>${Number(item.ns_score).toLocaleString()}</span>`;
                 rankList.appendChild(div);
             });
-        } catch (e) { rankList.innerHTML = "<div class='loading' style='color:var(--pink)'>DB_CONNECTION_FAIL</div>"; }
+        } catch (e) { rankList.innerHTML = "<div class='loading' style='color:var(--pink)'>INFRA_SYNC_FAILED</div>"; }
     }
 
     async function syncScoreToAWS(pid, s) {
@@ -96,7 +101,7 @@
                 mode: 'cors',
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
-                    ns_pilot_id: String(pid), 
+                    ns_pilot_id: String(pid).substring(0, 15), 
                     ns_score: Math.floor(Number(s)),
                     ns_updated_at: new Date().toISOString()
                 })
@@ -123,14 +128,12 @@
         isPlaying = false;
         const exitBtn = document.getElementById('exit-btn');
         
-        exitBtn.innerText = "COMMIT_PENDING...";
+        exitBtn.innerText = "AWS_COMMITTING...";
         exitBtn.style.pointerEvents = "none";
+        exitBtn.style.opacity = "0.7";
         
-        // [DBA_FINAL] 트랜잭션 성공 확인 후 런처 복귀
-        const success = await syncScoreToAWS(document.getElementById('player-id').value, score);
-        if(!success) {
-            console.error("DYNAMODB_WRITE_ERROR");
-        }
+        // [DBA_FINAL_CHECK] 트랜잭션 완료 대기
+        await syncScoreToAWS(document.getElementById('player-id').value, score);
         location.reload();
     }
 
@@ -140,17 +143,18 @@
         player.ty = Math.max(150, Math.min(height-100, e.touches[0].clientY - 80));
     }, { passive: false });
 
+    // --- GENESIS ENGINE CLASSES ---
     class Bullet {
         constructor(x, y) {
             this.x = x; this.y = y; this.scale = 1;
-            this.vx = (centerX - x) * 0.1; this.vy = (centerY - y) * 0.1;
+            this.vx = (centerX - x) * 0.11; this.vy = (centerY - y) * 0.11;
             this.active = true;
         }
         draw() {
-            this.x += this.vx; this.y += this.vy; this.scale *= 0.91;
+            this.x += this.vx; this.y += this.vy; this.scale *= 0.90;
             if(this.scale < 0.04) this.active = false;
-            ctx.fillStyle = `rgba(255,255,255,${this.scale+0.45})`;
-            ctx.beginPath(); ctx.arc(this.x, this.y, 10*this.scale, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = `rgba(255,255,255,${this.scale+0.5})`;
+            ctx.beginPath(); ctx.arc(this.x, this.y, 11*this.scale, 0, Math.PI*2); ctx.fill();
         }
     }
 
@@ -158,29 +162,29 @@
         constructor(isBoss = false) {
             this.isBoss = isBoss; this.angle = Math.random()*Math.PI*2;
             this.progress = 0; this.scale = 0.01;
-            this.hp = isBoss ? 350 : 1; this.maxHp = this.hp;
+            this.hp = isBoss ? 450 : 1; this.maxHp = this.hp;
             this.active = true; this.phase = 0; this.hitFlash = 0;
         }
         update() {
-            this.progress += (this.isBoss ? 0.003 : 0.018);
-            this.scale = this.progress * 2;
-            if(this.isBoss && this.scale > 0.85) {
-                this.scale = 0.85; this.phase += 0.02;
-                this.cx = centerX + Math.cos(this.phase)*(Math.sin(this.phase*2)*380);
-                this.cy = centerY + Math.sin(this.phase) * 180;
+            this.progress += (this.isBoss ? 0.0025 : 0.019);
+            this.scale = this.progress * 2.2;
+            if(this.isBoss && this.scale > 0.9) {
+                this.scale = 0.9; this.phase += 0.022;
+                this.cx = centerX + Math.cos(this.phase)*(Math.sin(this.phase*2)*400);
+                this.cy = centerY + Math.sin(this.phase) * 200;
             } else {
-                let dist = this.progress*(width*0.85);
+                let dist = this.progress*(width*0.88);
                 this.cx = centerX + Math.cos(this.angle)*dist;
                 this.cy = centerY + Math.sin(this.angle)*dist;
             }
-            if(this.scale > 1.9) this.active = false;
+            if(this.scale > 2.0) this.active = false;
         }
         draw() {
-            if(!this.active || this.scale > 1.6) return;
+            if(!this.active || this.scale > 1.7) return;
             ctx.save(); ctx.translate(this.cx, this.cy); ctx.scale(this.scale, this.scale);
             if(this.hitFlash > 0) { ctx.filter = 'brightness(5)'; this.hitFlash--; }
             ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#00ffff';
-            ctx.lineWidth = 7; ctx.strokeRect(-45,-45,90,90);
+            ctx.lineWidth = 8; ctx.strokeRect(-45,-45,90,90);
             ctx.restore();
         }
     }
@@ -190,15 +194,15 @@
         frame++; ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle = '#000'; ctx.fillRect(0,0,width,height);
         
         stars.forEach(s => {
-            s.z -= (boss ? 50 : 25); if(s.z <= 0) s.z = width;
-            let x = (s.x/s.z)*width+centerX; let y = (s.y/s.z)*height+centerY;
-            ctx.fillStyle = `rgba(0, 255, 204, ${1.2-s.z/width})`; ctx.fillRect(x,y,2,2);
+            s.z -= (boss ? 55 : 28); if(s.z <= 0) s.z = width;
+            let x = (s.x/s.z)*width + centerX; let y = (s.y/s.z)*height + centerY;
+            ctx.fillStyle = `rgba(0, 255, 204, ${1.3-s.z/width})`; ctx.fillRect(x,y,2,2);
         });
 
-        if(frame%5===0) bullets.push(new Bullet(player.x-45, player.y), new Bullet(player.x+45, player.y));
+        if(frame%5===0) bullets.push(new Bullet(player.x-50, player.y), new Bullet(player.x+50, player.y));
         bullets = bullets.filter(b=>b.active); bullets.forEach(b=>b.draw());
 
-        if(frame%40===0 && !boss) enemies.push(new Enemy());
+        if(frame%35===0 && !boss) enemies.push(new Enemy());
         if(score >= bossTrigger && !boss) {
             boss = new Enemy(true); enemies.push(boss);
             document.getElementById('boss-ui').style.display = 'block';
@@ -206,9 +210,9 @@
 
         enemies.forEach((e, ei) => {
             e.update(); e.draw();
-            if(e.active && e.scale > 0.82 && e.scale < 1.3) {
-                if(Math.hypot(e.cx-player.x, e.cy-player.y) < 85) {
-                    hp -= e.isBoss ? 50 : 20;
+            if(e.active && e.scale > 0.85 && e.scale < 1.35) {
+                if(Math.hypot(e.cx-player.x, e.cy-player.y) < 90) {
+                    hp -= e.isBoss ? 60 : 25;
                     document.getElementById('hp-val').innerText = Math.max(0, hp);
                     document.getElementById('damage-flash').style.display='block';
                     setTimeout(()=>document.getElementById('damage-flash').style.display='none', 100);
@@ -218,26 +222,26 @@
                 }
             }
             bullets.forEach((b, bi) => {
-                let hitBox = e.isBoss ? 190 : 120;
+                let hitBox = e.isBoss ? 210 : 130;
                 if(e.active && b.active && Math.hypot(e.cx-b.x, e.cy-b.y) < hitBox*e.scale) {
                     e.hp--; e.hitFlash = 3; b.active = false;
                     if(e.isBoss) document.getElementById('hp-bar').style.width = (e.hp/e.maxHp)*100+'%';
                     if(e.hp <= 0) {
-                        score += e.isBoss ? 5000 : 100;
+                        score += e.isBoss ? 10000 : 100;
                         document.getElementById('score-val').innerText = score.toLocaleString();
-                        if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; bossTrigger = score+9000; }
+                        if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; bossTrigger = score+12000; }
                         enemies.splice(ei, 1);
                     }
                 }
             });
             if(!e.active) {
-                if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; hp-=40; if(hp<=0) endGame(); bossTrigger=score+9000; }
+                if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; hp-=50; if(hp<=0) endGame(); bossTrigger=score+12000; }
                 enemies.splice(ei, 1);
             }
         });
 
-        player.x += (player.tx-player.x)*0.28; player.y += (player.ty-player.y)*0.28;
-        if(assets.player.complete) ctx.drawImage(assets.player, player.x-70, player.y-70, 140, 140);
+        player.x += (player.tx-player.x)*0.3; player.y += (player.ty-player.y)*0.3;
+        if(assets.player.complete) ctx.drawImage(assets.player, player.x-75, player.y-75, 150, 150);
         requestAnimationFrame(render);
     }
 </script>

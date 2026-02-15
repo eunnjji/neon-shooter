@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.51 - FAIL-SAFE</title>
+    <title>NEON SHOOTER v0.52 - MASTER NODE</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; color: white; }
@@ -39,14 +39,14 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <div class="rank-title">CORE_SYNC_FAILURE_RECOVERY</div>
+        <div class="rank-title">NS_MASTER_NODE</div>
         <div id="rank-board">
-            <div id="rank-list"><div class="loading">SYNCING WITH AWS...</div></div>
+            <div id="rank-list"><div class="loading">DIAGNOSING CLOUD LINK...</div></div>
         </div>
 
-        <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem;" value="MASTER_DBA">
+        <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem;" value="PILOT_01">
         <button id="start-btn" class="main-btn" onclick="startGame()">MISSION START</button>
-        <div id="sync-status" style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">v0.51 // 500_ERROR_RECOVERY_MODE</div>
+        <div id="sync-status" style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">v0.52 // FULL STACK DEBUG MODE</div>
     </div>
 
     <div id="hud">
@@ -72,47 +72,34 @@
     function initAssets() {
         assets.bg.src = 'assets/bg_night.png';
         assets.player.src = 'assets/player.png';
-        assets.player.onload = () => {
-            init();
-            fetchRankings();
-        };
+        assets.player.onload = () => { init(); fetchRankings(); };
     }
 
     async function fetchRankings() {
         const rankList = document.getElementById('rank-list');
         try {
-            const response = await fetch(API_URL, { 
-                method: 'GET', 
-                mode: 'cors',
-                headers: { 'Accept': 'application/json' }
-            });
-            
-            // 500 에러 처리
-            if (!response.ok) {
-                throw new Error(`Server Error: ${response.status}`);
-            }
+            const response = await fetch(API_URL, { method: 'GET', mode: 'cors' });
+            if (!response.ok) throw new Error(`HTTP_ERR_${response.status}`);
 
-            let data = await response.json();
-            let items = Array.isArray(data) ? data : (data.Items || []);
+            const data = await response.json();
+            // [해결] 람다가 Items 객체를 주든 배열을 주든 유연하게 처리
+            const items = Array.isArray(data) ? data : (data.Items || []);
             
             rankList.innerHTML = "";
             if(items.length > 0) {
-                items.sort((a, b) => Number(b.ns_score || b.score || 0) - Number(a.ns_score || a.score || 0))
+                items.sort((a, b) => Number(b.ns_score || 0) - Number(a.ns_score || 0))
                     .slice(0, 5)
                     .forEach((item, index) => {
                         const div = document.createElement('div');
                         div.className = `rank-item ${index === 0 ? 'top' : ''}`;
-                        const pid = item.ns_pilot_id || item.pilotId || "Unknown";
-                        const pScore = item.ns_score || item.score || 0;
+                        const pid = item.ns_pilot_id || "Unknown";
+                        const pScore = item.ns_score || 0;
                         div.innerHTML = `<span>${index+1}. ${pid}</span><span>${Number(pScore).toLocaleString()}</span>`;
                         rankList.appendChild(div);
                     });
-            } else {
-                rankList.innerHTML = "<div class='loading'>EMPTY NEBULA</div>";
-            }
+            } else { rankList.innerHTML = "<div class='loading'>EMPTY DATABASE</div>"; }
         } catch (e) {
-            console.error("Critical Sync Error:", e);
-            rankList.innerHTML = `<div class='loading' style='color:var(--pink)'>AWS 500 ERROR<br><span style="font-size:0.6rem">CHECK LAMBDA LOGS</span></div>`;
+            rankList.innerHTML = `<div class='loading' style='color:var(--pink)'>SYNC ERROR<br>${e.message}</div>`;
         }
     }
 
@@ -124,15 +111,12 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ns_pilot_id: String(pilotId),
-                    ns_score: Number(finalScore),
+                    ns_score: Number(finalScore), // 숫자로 확실히 변환
                     ns_updated_at: new Date().toISOString()
                 })
             });
             return response.ok;
-        } catch (error) {
-            console.error("POST Sync Failed", error);
-            return false;
-        }
+        } catch (error) { return false; }
     }
 
     function init() {
@@ -146,8 +130,7 @@
     function startGame() {
         document.getElementById('launcher').style.transform = 'translateY(-100%)';
         document.getElementById('hud').style.visibility = 'visible';
-        isPlaying = true;
-        render();
+        isPlaying = true; render();
     }
 
     async function endGame() {
@@ -156,14 +139,10 @@
         const pid = document.getElementById('player-id').value || "PILOT";
         const exitBtn = document.getElementById('exit-btn');
         
-        exitBtn.innerText = "AWS SYNCING...";
+        exitBtn.innerText = "AWS_SAVING...";
         const success = await syncScoreToAWS(pid, score);
         
-        if(success) {
-            exitBtn.innerText = "SUCCESS";
-        } else {
-            alert("AWS 500 ERROR: 데이터 전송에 실패했습니다.\n람다 함수의 CloudWatch 로그를 확인하세요.");
-        }
+        if(!success) alert("500_INTERNAL_SERVER_ERROR\nCheck Lambda JSON Parsing or DynamoDB Types.");
         location.reload();
     }
 
@@ -173,7 +152,7 @@
         player.ty = Math.max(150, Math.min(height-100, e.touches[0].clientY - 80));
     }, { passive: false });
 
-    // --- 최적화 엔진 (v0.50 베이스 유지) ---
+    // --- GAME ENGINE (Stability Optimized) ---
     class Bullet {
         constructor(x, y) {
             this.x = x; this.y = y; this.scale = 1.0;
@@ -216,7 +195,7 @@
             if(this.hitFlash > 0) { ctx.filter = 'brightness(5)'; this.hitFlash--; }
             ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#00ffff';
             ctx.lineWidth = 5; ctx.strokeRect(-45, -45, 90, 90);
-            ctx.restore(); ctx.filter = 'none';
+            ctx.restore();
         }
     }
 

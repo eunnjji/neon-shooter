@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.80 - FINAL SYNC</title>
+    <title>NEON SHOOTER v0.85 - OMEGA SYNC</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; color: white; }
@@ -32,7 +32,7 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <div style="color:var(--mint); margin-bottom:20px; letter-spacing:5px;">NS_FINAL_SYNC_v80</div>
+        <div style="color:var(--mint); margin-bottom:20px; letter-spacing:5px;">NS_OMEGA_v85</div>
         <div id="rank-board">
             <div id="rank-list"><div class="loading">SYNCING_AWS...</div></div>
         </div>
@@ -82,8 +82,8 @@
             const response = await fetch(API_URL, {
                 method: "POST",
                 mode: 'cors',
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ ns_pilot_id: String(pid), ns_score: Number(s), ns_updated_at: new Date().toISOString() })
+                headers: { "content-type": "application/json" }, // 인프라 설정에 맞춘 소문자
+                body: JSON.stringify({ ns_pilot_id: String(pid), ns_score: Number(s) })
             });
             return response.ok;
         } catch (e) { return false; }
@@ -106,8 +106,7 @@
         if(!isPlaying) return;
         isPlaying = false;
         document.getElementById('exit-btn').innerText = "WRITING...";
-        const success = await syncScoreToAWS(document.getElementById('player-id').value, score);
-        if(!success) alert("DB_WRITE_FAILED: Check API Gateway CORS or Lambda Response Format.");
+        await syncScoreToAWS(document.getElementById('player-id').value, score);
         location.reload();
     }
 
@@ -167,21 +166,15 @@
         bullets = bullets.filter(b=>b.active); bullets.forEach(b=>b.draw());
 
         if(frame%50===0 && !boss) enemies.push(new Enemy());
-        if(score >= bossTrigger && !boss) {
-            boss = new Enemy(true); enemies.push(boss);
-            document.getElementById('boss-ui').style.display = 'block';
-        }
+        if(score >= bossTrigger && !boss) { boss = new Enemy(true); enemies.push(boss); document.getElementById('boss-ui').style.display = 'block'; }
 
         enemies.forEach((e, ei) => {
             e.update(); e.draw();
             if(e.active && e.scale > 0.8 && e.scale < 1.2) {
                 if(Math.hypot(e.cx-player.x, e.cy-player.y) < 75) {
-                    hp -= e.isBoss ? 40 : 15;
-                    document.getElementById('hp-val').innerText = Math.max(0, hp);
-                    document.getElementById('damage-flash').style.display='block';
-                    setTimeout(()=>document.getElementById('damage-flash').style.display='none', 100);
-                    if(hp <= 0) endGame();
-                    if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; }
+                    hp -= e.isBoss ? 40 : 15; document.getElementById('hp-val').innerText = Math.max(0, hp);
+                    document.getElementById('damage-flash').style.display='block'; setTimeout(()=>document.getElementById('damage-flash').style.display='none', 100);
+                    if(hp <= 0) endGame(); if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; }
                     enemies.splice(ei, 1); return;
                 }
             }
@@ -191,17 +184,13 @@
                     e.hp--; e.hitFlash = 3; bullets.splice(bi, 1);
                     if(e.isBoss) document.getElementById('hp-bar').style.width = (e.hp/e.maxHp)*100+'%';
                     if(e.hp <= 0) {
-                        score += e.isBoss ? 5000 : 100;
-                        document.getElementById('score-val').innerText = score.toLocaleString();
+                        score += e.isBoss ? 5000 : 100; document.getElementById('score-val').innerText = score.toLocaleString();
                         if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; bossTrigger = score+7000; }
                         enemies.splice(ei, 1);
                     }
                 }
             });
-            if(!e.active) {
-                if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; hp-=30; if(hp<=0) endGame(); bossTrigger=score+7000; }
-                enemies.splice(ei, 1);
-            }
+            if(!e.active) { if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; hp-=30; if(hp<=0) endGame(); bossTrigger=score+7000; } enemies.splice(ei, 1); }
         });
 
         player.x += (player.tx-player.x)*0.22; player.y += (player.ty-player.y)*0.22;

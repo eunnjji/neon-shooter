@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.54 - FINAL SYNC</title>
+    <title>NEON SHOOTER v0.55 - FINALITY</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; color: white; }
@@ -17,8 +17,7 @@
         #rank-board { width: 320px; background: rgba(0, 255, 204, 0.05); border: 2px solid rgba(0, 255, 204, 0.3); border-radius: 20px; padding: 25px; margin-bottom: 30px; }
         .rank-title { color: var(--mint); font-size: 1.2rem; text-align: center; margin-bottom: 20px; letter-spacing: 5px; }
         .rank-item { display: flex; justify-content: space-between; margin-bottom: 12px; font-family: 'Courier New', monospace; font-size: 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
-        .rank-item.top { color: var(--gold); font-weight: bold; }
-
+        
         #hud { position: absolute; top: 0; width: 100%; padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; }
         .hud-box { background: rgba(0, 0, 0, 0.8); border: 2px solid var(--mint); padding: 10px 20px; border-radius: 20px; }
         #exit-btn { background: rgba(255, 0, 255, 0.15); border: 2.5px solid var(--pink); color: var(--pink); padding: 10px 20px; border-radius: 20px; font-weight: bold; pointer-events: auto; cursor: pointer; }
@@ -39,14 +38,14 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <div class="rank-title">NS_GLOBAL_RANK</div>
+        <div class="rank-title">NS_INFRA_FINALITY</div>
         <div id="rank-board">
-            <div id="rank-list"><div class="loading">SYNCING WITH AWS...</div></div>
+            <div id="rank-list"><div class="loading">CONNECTING TO AWS...</div></div>
         </div>
 
         <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem;" value="MASTER_DBA">
         <button class="main-btn" onclick="startGame()">MISSION START</button>
-        <div id="db-status" style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">v0.54 // FULL DUPLEX SYNC</div>
+        <div id="db-status" style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">v0.55 // STRICT SYNC ENABLED</div>
     </div>
 
     <div id="hud">
@@ -84,11 +83,11 @@
                 headers: { 'Accept': 'application/json' }
             });
             const data = await response.json();
+            // Items 배열 핸들링 (Lambda Scan 결과 대응)
             const items = Array.isArray(data) ? data : (data.Items || []);
             
             rankList.innerHTML = "";
             if(items.length > 0) {
-                // DBA 정렬: 점수 내림차순
                 items.sort((a, b) => Number(b.ns_score) - Number(a.ns_score))
                     .slice(0, 5)
                     .forEach((item, index) => {
@@ -97,28 +96,26 @@
                         div.innerHTML = `<span>${index+1}. ${item.ns_pilot_id}</span><span>${Number(item.ns_score).toLocaleString()}</span>`;
                         rankList.appendChild(div);
                     });
-            } else { rankList.innerHTML = "<div class='loading'>NO RECORD FOUND</div>"; }
-        } catch (e) { 
-            console.error("Fetch Error:", e);
-            rankList.innerHTML = "<div class='loading' style='color:var(--pink)'>SYNC ERROR</div>"; 
-        }
+            } else { rankList.innerHTML = "<div class='loading'>NO DATA</div>"; }
+        } catch (e) { rankList.innerHTML = "<div class='loading' style='color:var(--pink)'>SYNC ERROR</div>"; }
     }
 
     async function syncScoreToAWS(pilotId, finalScore) {
-        if(finalScore < 10) return true; 
+        if(finalScore < 10) return true;
+        const payload = {
+            ns_pilot_id: String(pilotId),
+            ns_score: Number(finalScore),
+            ns_updated_at: new Date().toISOString()
+        };
+        
         try {
             const response = await fetch(API_URL, {
                 method: "POST",
-                mode: 'cors',
+                mode: 'cors', // CORS 정책 준수
                 headers: { 
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
+                    "Content-Type": "application/json"
                 },
-                body: JSON.stringify({
-                    ns_pilot_id: String(pilotId),
-                    ns_score: Number(finalScore),
-                    ns_updated_at: new Date().toISOString()
-                })
+                body: JSON.stringify(payload)
             });
             return response.ok;
         } catch (error) { 
@@ -148,9 +145,13 @@
         const exitBtn = document.getElementById('exit-btn');
         
         exitBtn.innerText = "SAVING...";
+        // [해결] alert창 이전에 비동기 요청을 완료 시킴
         const success = await syncScoreToAWS(pid, score);
         
-        if(!success) alert("AWS WRITE ERROR: Check Lambda POST logic.");
+        if(!success) {
+            console.error("DB Write Failed. Check CORS or DynamoDB Partition Key.");
+        }
+        
         location.reload(); 
     }
 
@@ -160,7 +161,7 @@
         player.ty = Math.max(150, Math.min(height-100, e.touches[0].clientY - 80));
     }, { passive: false });
 
-    // --- GAME ENGINE CLASSES ---
+    // --- 최적화 엔진 클래스 ---
     class Bullet {
         constructor(x, y) {
             this.x = x; this.y = y; this.scale = 1.0;

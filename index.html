@@ -3,77 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.95</title>
+    <title>NEON SHOOTER v1.4 - INFRA INTEGRATED</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --bg: #000; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; color: white; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow-x: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; color: white; }
+        
+        /* GAME LAYER */
         canvas { display: block; width: 100%; height: 100%; position: absolute; z-index: 10; }
         #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 100; }
         .interactive { pointer-events: auto; }
         #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; }
-        .main-btn { padding: 18px 70px; background: transparent; border: 3px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.5rem; cursor: pointer; box-shadow: 0 0 15px var(--mint); }
-        #rank-board { width: 300px; background: rgba(0, 255, 204, 0.1); border: 1px solid var(--mint); border-radius: 20px; padding: 20px; margin-bottom: 20px; }
-        .rank-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        #hud { position: absolute; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; z-index: 150; }
-        .hud-box { background: rgba(0,0,0,0.7); border: 1px solid var(--mint); padding: 10px; border-radius: 10px; }
+        .main-btn { padding: 18px 70px; background: transparent; border: 3px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.5rem; cursor: pointer; box-shadow: 0 0 20px var(--mint); letter-spacing: 5px; margin-bottom: 25px; transition: 0.3s; }
+        #rank-board { width: 300px; background: rgba(0, 255, 204, 0.05); border: 2px solid var(--mint); border-radius: 20px; padding: 20px; margin-bottom: 25px; }
+        .rank-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-family: 'Courier New', monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
+        #hud { position: absolute; top: 0; width: 100%; padding: 25px; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; z-index: 150; }
+        .hud-box { background: rgba(0,0,0,0.8); border: 2px solid var(--mint); padding: 10px 20px; border-radius: 20px; }
+        
+        /* ADMIN PANEL LAYER (Scrollable) */
+        #admin-scroll-zone { position: absolute; bottom: 0; width: 100%; height: 40px; background: rgba(20,20,20,0.8); z-index: 300; transition: height 0.4s; overflow: hidden; pointer-events: auto; border-top: 2px solid var(--pink); }
+        #admin-scroll-zone.open { height: 70%; overflow-y: auto; }
+        .admin-content { padding: 20px; font-family: monospace; }
+        .admin-trigger { text-align: center; padding: 10px; color: var(--pink); font-weight: bold; cursor: pointer; border-bottom: 1px solid #333; }
+        input, select, textarea, .admin-btn { width: 100%; background: #111; border: 1px solid var(--mint); color: #fff; padding: 10px; margin: 10px 0; border-radius: 8px; box-sizing: border-box; }
+        .admin-btn { background: #000; cursor: pointer; font-weight: bold; }
+        .admin-btn:hover { background: var(--mint); color: #000; }
+        #log { background: #000; border: 1px solid #333; padding: 10px; height: 120px; overflow-y: auto; color: #0f0; font-size: 11px; margin-top: 10px; }
     </style>
 </head>
 <body onload="initAssets()">
+
 <canvas id="gameCanvas"></canvas>
+
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <h2 style="color:var(--mint);">NEON_SHOOTER_v95</h2>
-        <div id="rank-board"><div id="rank-list">DB_CONNECTING...</div></div>
-        <input type="text" id="player-id" style="background:#222; border:1px solid var(--mint); color:white; padding:10px; border-radius:10px; width:180px; text-align:center; margin-bottom:20px;" value="MASTER_DBA">
+        <h1 style="color:var(--mint); margin-bottom:20px; letter-spacing:10px;">NEON SHOOTER</h1>
+        <div id="rank-board">
+            <div id="rank-list" style="text-align:center;">SYNCING_AWS...</div>
+        </div>
+        <input type="text" id="player-id" style="background:#111; border:2px solid var(--mint); color:white; padding:15px; border-radius:15px; width:220px; text-align:center; margin-bottom:20px;" value="MASTER_DBA">
         <button class="main-btn" onclick="startGame()">MISSION START</button>
+        <p style="color:var(--pink); font-size:0.7rem; opacity:0.6;">SWIPE UP FROM BOTTOM FOR ADMIN</p>
     </div>
+
     <div id="hud">
         <div class="hud-box">SCORE: <span id="score-val">0</span></div>
         <div class="hud-box" style="border-color:var(--pink); color:var(--pink);">HP: <span id="hp-val">100</span></div>
     </div>
 </div>
 
+<div id="admin-scroll-zone">
+    <div class="admin-trigger" onclick="toggleAdmin()">▲ [INFRA_ADMIN_PANEL] ▲</div>
+    <div class="admin-content">
+        <label>TARGET_TABLE:</label>
+        <select id="target-table">
+            <option value="leaderboard" data-pk="ns_pilot_id">1. ns_rankings (Rank)</option>
+            <option value="user_stat" data-pk="user_id">2. ns_user_stat (Stat)</option>
+            <option value="mission_info" data-pk="mission_id">3. ns_mission_info (Mission)</option>
+            <option value="user_mission_stat" data-pk="user_id">4. ns_user_mission_stat (Prog)</option>
+            <option value="reward_info" data-pk="reward_id">5. ns_reward_info (Rew)</option>
+            <option value="banned_word" data-pk="word_text">6. ns_banned_word (Ban)</option>
+        </select>
+        <input type="text" id="item-id" placeholder="Partition Key Value">
+        <textarea id="item-data" placeholder='JSON: {"score": 500}'></textarea>
+        <div style="display: flex; gap: 5px;">
+            <button class="admin-btn" onclick="dbAction('GET_ALL')">LIST</button>
+            <button class="admin-btn" onclick="dbAction('GET')">GET</button>
+            <button class="admin-btn" onclick="dbAction('PUT')" style="color:var(--pink)">UPSERT</button>
+            <button class="admin-btn" onclick="dbAction('DELETE')" style="color:red">DEL</button>
+        </div>
+        <div id="log">SYSTEM_LOG...</div>
+    </div>
+</div>
+
 <script>
-    // 스크린샷 기반 최종 Invoke URL
-    const API_URL = "https://yjcl8duzsd.execute-api.ap-northeast-2.amazonaws.com/NeonShooter_Logic-API_2nd/items";
+    // [DBA_CHECK] HTTP API 엔드포인트
+    const API_BASE = "https://yjcl8duzsd.execute-api.ap-northeast-2.amazonaws.com";
+    
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    let width, height, player, bullets = [], enemies = [], frame = 0, score = 0, hp = 100, isPlaying = false;
+    let width, height, player, bullets = [], enemies = [], stars = [], frame = 0, score = 0, hp = 100, isPlaying = false;
 
+    // --- INFRA CORE ---
     async function fetchRankings() {
         try {
-            const res = await fetch(API_URL);
+            const res = await fetch(`${API_BASE}/leaderboard`);
             const data = await res.json();
             const items = Array.isArray(data) ? data : (data.Items || []);
-            document.getElementById('rank-list').innerHTML = items.sort((a,b)=>b.ns_score-a.ns_score).slice(0, 5).map((item, i) => 
+            document.getElementById('rank-list').innerHTML = items.sort((a,b)=>Number(b.ns_score)-Number(a.ns_score)).slice(0, 5).map((item, i) => 
                 `<div class="rank-item"><span>${i+1}. ${item.ns_pilot_id}</span><span>${item.ns_score}</span></div>`
-            ).join('') || "NO DATA";
-        } catch (e) { document.getElementById('rank-list').innerHTML = "DB_SYNC_WAITING"; }
+            ).join('') || "EMPTY";
+        } catch (e) { document.getElementById('rank-list').innerHTML = "AWS_SYNC_FAIL"; }
     }
 
+    async function dbAction(type) {
+        const table = document.getElementById('target-table').value;
+        const id = document.getElementById('item-id').value;
+        const sel = document.getElementById('target-table');
+        const pkName = sel.options[sel.selectedIndex].getAttribute('data-pk');
+        const log = document.getElementById('log');
+        
+        let url = `${API_BASE}/${table}`;
+        let opt = { headers: { "Content-Type": "application/json" } };
+
+        try {
+            if (type === 'GET' || type === 'DELETE') { url += `/${id}`; opt.method = type; }
+            if (type === 'GET_ALL') opt.method = 'GET';
+            if (type === 'PUT') {
+                opt.method = 'PUT';
+                const body = JSON.parse(document.getElementById('item-data').value || '{}');
+                body[pkName] = id;
+                opt.body = JSON.stringify(body);
+            }
+            const res = await fetch(url, opt);
+            const data = await res.json();
+            log.innerHTML += `<div>> [${type}] ${JSON.stringify(data)}</div>`;
+            log.scrollTop = log.scrollHeight;
+        } catch (e) { log.innerHTML += `<div style="color:red">> ERR: ${e.message}</div>`; }
+    }
+
+    function toggleAdmin() { document.getElementById('admin-scroll-zone').classList.toggle('open'); }
+
+    // --- GAME ENGINE (v0.69) ---
     function initAssets() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
+        stars = Array(120).fill().map(() => ({ x: Math.random()*width, y: Math.random()*height, s: Math.random()*2.5 }));
         fetchRankings();
     }
 
     function startGame() {
         document.getElementById('launcher').style.display = 'none';
         document.getElementById('hud').style.visibility = 'visible';
-        player = { x: width/2, y: height-120, tx: width/2, ty: height-120 };
-        isPlaying = true;
-        render();
+        player = { x: width/2, y: height-150, tx: width/2, ty: height-150 };
+        isPlaying = true; render();
     }
 
     async function endGame() {
         isPlaying = false;
+        const pid = document.getElementById('player-id').value;
         try {
-            await fetch(API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" }, // API 설정 대문자와 일치
-                body: JSON.stringify({ ns_pilot_id: document.getElementById('player-id').value, ns_score: Number(score) })
+            await fetch(`${API_BASE}/leaderboard`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ns_pilot_id: pid, ns_score: Number(score) })
             });
-        } catch(e) { console.error("SAVE_ERROR", e); }
+        } catch(e) {}
         location.reload();
     }
 
@@ -86,31 +160,32 @@
         if(!isPlaying) return;
         frame++; ctx.fillStyle = '#000'; ctx.fillRect(0,0,width,height);
         
-        if(frame%8===0) bullets.push({x: player.x, y: player.y});
+        stars.forEach(s => {
+            s.y += 2; if(s.y > height) s.y = 0;
+            ctx.fillStyle = '#fff'; ctx.fillRect(s.x, s.y, s.s, s.s);
+        });
+
+        player.x += (player.tx - player.x) * 0.2;
+        player.y += (player.ty - player.y) * 0.2;
+        ctx.fillStyle = '#00ffcc'; ctx.fillRect(player.x-25, player.y-25, 50, 50);
+
+        if(frame % 8 === 0) bullets.push({ x: player.x, y: player.y });
         bullets.forEach((b, i) => {
-            b.y -= 10; ctx.fillStyle = '#fff'; ctx.fillRect(b.x-2, b.y, 4, 15);
+            b.y -= 15; ctx.fillStyle = '#fff'; ctx.fillRect(b.x-2, b.y, 4, 15);
             if(b.y < 0) bullets.splice(i, 1);
         });
 
-        if(frame%50===0) enemies.push({x: Math.random()*width, y: -50});
+        if(frame % 40 === 0) enemies.push({ x: Math.random()*width, y: -50 });
         enemies.forEach((e, ei) => {
-            e.y += 4; ctx.strokeStyle = '#00ffff'; ctx.strokeRect(e.x-20, e.y-20, 40, 40);
-            if(Math.hypot(e.x-player.x, e.y-player.y) < 40) {
-                hp -= 10; enemies.splice(ei, 1);
-                document.getElementById('hp-val').innerText = hp;
-                if(hp <= 0) endGame();
-            }
+            e.y += 5; ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 3; ctx.strokeRect(e.x-20, e.y-20, 40, 40);
+            if(Math.hypot(e.x-player.x, e.y-player.y) < 45) endGame();
             bullets.forEach((b, bi) => {
-                if(Math.hypot(e.x-b.x, e.y-b.y) < 30) {
+                if(Math.hypot(e.x-b.x, e.y-b.y) < 35) {
                     enemies.splice(ei, 1); bullets.splice(bi, 1);
                     score += 100; document.getElementById('score-val').innerText = score;
                 }
             });
-            if(e.y > height) enemies.splice(ei, 1);
         });
-
-        player.x += (player.tx-player.x)*0.2; player.y += (player.ty-player.y)*0.2;
-        ctx.fillStyle = '#00ffcc'; ctx.fillRect(player.x-25, player.y-25, 50, 50);
         requestAnimationFrame(render);
     }
 </script>

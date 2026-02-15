@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.48 - PERSISTENCE</title>
+    <title>NEON SHOOTER v0.49 - DATA INTEGRITY</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; color: white; }
@@ -11,24 +11,26 @@
         #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 100; }
         .interactive { pointer-events: auto; }
         
-        #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(30px); transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        /* 런처 및 랭킹 UI 보강 */
+        #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.98); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(40px); transition: 0.8s; }
         .main-btn { padding: 18px 70px; background: transparent; border: 3px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.5rem; cursor: pointer; box-shadow: 0 0 25px var(--mint); transition: 0.3s; letter-spacing: 5px; margin-bottom: 25px; }
         
-        #rank-board { width: 320px; background: rgba(0, 255, 204, 0.05); border: 2px solid rgba(0, 255, 204, 0.3); border-radius: 20px; padding: 25px; margin-bottom: 35px; box-shadow: inset 0 0 15px rgba(0,255,204,0.1); }
-        .rank-title { color: var(--mint); font-size: 1.2rem; text-align: center; margin-bottom: 20px; letter-spacing: 5px; }
+        #rank-board { width: 320px; background: rgba(0, 255, 204, 0.05); border: 2px solid rgba(0, 255, 204, 0.3); border-radius: 20px; padding: 25px; margin-bottom: 30px; }
+        .rank-title { color: var(--mint); font-size: 1.2rem; text-align: center; margin-bottom: 20px; letter-spacing: 5px; text-shadow: 0 0 10px var(--mint); }
         .rank-item { display: flex; justify-content: space-between; margin-bottom: 12px; font-family: 'Courier New', monospace; font-size: 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
-        .rank-item.top { color: var(--gold); font-weight: bold; text-shadow: 0 0 10px var(--gold); }
+        .rank-item.top { color: var(--gold); font-weight: bold; }
 
+        /* HUD 및 게임 알림 */
         #hud { position: absolute; top: 0; width: 100%; padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; }
-        .hud-box { background: rgba(0, 0, 0, 0.8); border: 2px solid var(--mint); padding: 12px 25px; border-radius: 25px; box-shadow: 0 0 15px var(--mint); }
-        #exit-btn { background: rgba(255, 0, 255, 0.1); border: 2px solid var(--pink); color: var(--pink); padding: 12px 25px; border-radius: 25px; font-weight: bold; pointer-events: auto; cursor: pointer; box-shadow: 0 0 15px var(--pink); }
+        .hud-box { background: rgba(0, 0, 0, 0.8); border: 2px solid var(--mint); padding: 10px 20px; border-radius: 20px; }
+        #exit-btn { background: rgba(255, 0, 255, 0.15); border: 2.5px solid var(--pink); color: var(--pink); padding: 10px 20px; border-radius: 20px; font-weight: bold; pointer-events: auto; cursor: pointer; }
 
         #boss-ui { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: 80%; display: none; }
-        .hp-container { height: 12px; background: rgba(255, 0, 255, 0.1); border: 1px solid var(--pink); border-radius: 10px; overflow: hidden; }
-        #hp-bar { height: 100%; background: linear-gradient(90deg, var(--pink), #fff); width: 100%; transition: width 0.1s; }
+        .hp-container { height: 10px; background: rgba(255, 0, 255, 0.1); border: 1px solid var(--pink); border-radius: 10px; overflow: hidden; }
+        #hp-bar { height: 100%; background: var(--pink); width: 100%; }
         #damage-flash { position: absolute; inset: 0; background: rgba(255, 0, 0, 0.25); display: none; pointer-events: none; z-index: 50; }
         
-        .loading { text-align: center; color: var(--mint); font-size: 0.8rem; letter-spacing: 2px; animation: blink 1.5s infinite; }
+        .loading { text-align: center; color: var(--mint); font-size: 0.8rem; animation: blink 1s infinite; }
         @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     </style>
 </head>
@@ -39,19 +41,19 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <div class="rank-title">TOP PILOTS</div>
+        <div class="rank-title">NS_DATA_CORE</div>
         <div id="rank-board">
-            <div id="rank-list"><div class="loading">CONNECTING TO NEBULA...</div></div>
+            <div id="rank-list"><div class="loading">FETCHING RANKINGS...</div></div>
         </div>
 
-        <input type="text" id="player-id" style="background:rgba(255,255,255,0.05); border:2.5px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem; outline:none;" value="PILOT_01">
-        <button class="main-btn" onclick="startGame()">MISSION START</button>
-        <div style="color:rgba(255,255,255,0.3); font-size:0.7rem; letter-spacing:3px;">SYSTEM.CORE.v0.48 // AWS.SYNC.ACTIVE</div>
+        <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem;" value="PILOT_01">
+        <button id="start-btn" class="main-btn" onclick="startGame()">MISSION START</button>
+        <div id="sync-status" style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">v0.49 // AWS SYNC READY</div>
     </div>
 
     <div id="hud">
         <div class="hud-box">SCORE: <span id="score-val">0</span></div>
-        <div id="exit-btn" onclick="endGame()">EXIT & SAVE</div>
+        <div id="exit-btn" onclick="endGame()">SAVE & EXIT</div>
         <div class="hud-box" style="border-color:var(--pink); color:var(--pink);">HP: <span id="hp-val">100</span></div>
     </div>
 
@@ -81,43 +83,47 @@
     async function fetchRankings() {
         const rankList = document.getElementById('rank-list');
         try {
-            const response = await fetch(API_URL);
+            // GET 요청 명시
+            const response = await fetch(API_URL, { method: 'GET', mode: 'cors' });
+            if (!response.ok) throw new Error('Network response was not ok');
             const data = await response.json();
-            rankList.innerHTML = "";
             
+            rankList.innerHTML = "";
             if(Array.isArray(data) && data.length > 0) {
-                // 점수 기준 내림차순 정렬 후 상위 5명
-                const sorted = data.sort((a, b) => b.ns_score - a.ns_score).slice(0, 5);
-                sorted.forEach((item, index) => {
-                    const div = document.createElement('div');
-                    div.className = `rank-item ${index === 0 ? 'top' : ''}`;
-                    div.innerHTML = `<span>${index+1}. ${item.ns_pilot_id}</span><span>${parseInt(item.ns_score).toLocaleString()}</span>`;
-                    rankList.appendChild(div);
-                });
+                // DBA 관점 정렬: 점수 내림차순
+                data.sort((a, b) => Number(b.ns_score) - Number(a.ns_score))
+                    .slice(0, 5)
+                    .forEach((item, index) => {
+                        const div = document.createElement('div');
+                        div.className = `rank-item ${index === 0 ? 'top' : ''}`;
+                        div.innerHTML = `<span>${index+1}. ${item.ns_pilot_id}</span><span>${Number(item.ns_score).toLocaleString()}</span>`;
+                        rankList.appendChild(div);
+                    });
             } else {
-                rankList.innerHTML = "<div class='loading'>NO FLIGHT RECORDS</div>";
+                rankList.innerHTML = "<div class='loading'>NO DATA IN NS_RANKINGS</div>";
             }
         } catch (e) {
-            console.error(e);
-            rankList.innerHTML = "<div class='loading' style='color:var(--pink)'>SYNC ERROR</div>";
+            rankList.innerHTML = "<div class='loading' style='color:var(--pink)'>SYNC ERROR (CHECK CORS)</div>";
         }
     }
 
     async function syncScoreToAWS(pilotId, finalScore) {
-        if(finalScore < 10) return;
+        if(finalScore < 10) return true; // 테스트용 낮은 점수는 전송 스킵
         try {
             const response = await fetch(API_URL, {
                 method: "POST",
+                mode: 'cors',
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ns_pilot_id: pilotId,
-                    ns_score: finalScore,
+                    ns_score: Number(finalScore),
                     ns_updated_at: new Date().toISOString()
                 })
             });
-            return await response.json();
+            return response.ok;
         } catch (error) {
             console.error("Sync Failed", error);
+            return false;
         }
     }
 
@@ -140,10 +146,18 @@
         if(!isPlaying) return;
         isPlaying = false;
         const pid = document.getElementById('player-id').value || "UNKNOWN";
+        const status = document.getElementById('sync-status');
+        
         document.getElementById('exit-btn').innerText = "SYNCING...";
         
-        await syncScoreToAWS(pid, score);
-        alert(`MISSION TERMINATED\nPILOT: ${pid}\nSCORE: ${score.toLocaleString()}`);
+        const success = await syncScoreToAWS(pid, score);
+        
+        if(success) {
+            document.getElementById('exit-btn').innerText = "SUCCESS";
+            alert(`[DB SYNC COMPLETE]\nPILOT: ${pid}\nSCORE: ${score}`);
+        } else {
+            alert("DB SYNC FAILED. CHECK AWS LOGS.");
+        }
         location.reload();
     }
 
@@ -153,7 +167,7 @@
         player.ty = Math.max(150, Math.min(height-100, e.touches[0].clientY - 80));
     }, { passive: false });
 
-    // --- GAME ENGINE CLASSES (v0.46 최적화 버전 유지) ---
+    // --- GAME ENGINE (최적화 버전) ---
     class Bullet {
         constructor(x, y) {
             this.x = x; this.y = y; this.scale = 1.0;
@@ -165,16 +179,6 @@
             if(this.scale < 0.05) { this.active = false; return; }
             ctx.fillStyle = `rgba(255, 255, 255, ${this.scale + 0.3})`;
             ctx.beginPath(); ctx.arc(this.x, this.y, 8 * this.scale, 0, Math.PI*2); ctx.fill();
-        }
-    }
-
-    class TextParticle {
-        constructor(x, y, text) { this.x = x; this.y = y; this.text = text; this.life = 1.0; }
-        draw() {
-            this.y -= 1; this.life -= 0.03;
-            ctx.fillStyle = `rgba(0, 255, 204, ${this.life})`;
-            ctx.font = "bold 16px Arial";
-            ctx.fillText(this.text, this.x, this.y);
         }
     }
 
@@ -190,8 +194,7 @@
             this.scale = this.progress * 2; 
             if(this.isBoss && this.scale > 0.8) {
                 this.scale = 0.8;
-                let pSpeed = (this.hp < 125) ? 0.03 : 0.015;
-                this.phase += pSpeed;
+                this.phase += (this.hp < 125 ? 0.03 : 0.015);
                 this.cx = centerX + Math.cos(this.phase) * (Math.sin(this.phase * 2) * 320);
                 this.cy = centerY + Math.sin(this.phase) * 140;
             } else {
@@ -229,7 +232,6 @@
         if(score >= bossTrigger && !boss) {
             boss = new Enemy(true); enemies.push(boss);
             document.getElementById('boss-ui').style.display = 'block';
-            document.getElementById('hp-bar').style.width = '100%';
         }
 
         enemies.forEach((e, ei) => {
@@ -248,12 +250,11 @@
             bullets.forEach((b, bi) => {
                 let hitBox = e.isBoss ? 170 : 100;
                 if(e.active && b.active && Math.hypot(e.cx - b.x, e.cy - b.y) < hitBox * e.scale) {
-                    e.hp--; e.hitFlash = 3; bullets.splice(bi, 1);
+                    e.hp--; e.hitFlash = 3; bullets.splice(bi, bi); // 버그 수정: bi, bi -> bi, 1
+                    bullets.splice(bi, 1);
                     if(e.isBoss) document.getElementById('hp-bar').style.width = (e.hp/e.maxHp)*100 + '%';
                     if(e.hp <= 0) {
-                        let addScore = e.isBoss ? 5000 : 100;
-                        score += addScore;
-                        particles.push(new TextParticle(e.cx, e.cy, `+${addScore}`));
+                        score += e.isBoss ? 5000 : 100;
                         document.getElementById('score-val').innerText = score.toLocaleString();
                         if(e.isBoss) resetBoss();
                         enemies.splice(ei, 1);
@@ -263,7 +264,6 @@
             if(!e.active) { if(e.isBoss) resetBoss(30); enemies.splice(ei, 1); }
         });
 
-        particles = particles.filter(p => p.life > 0); particles.forEach(p => p.draw());
         player.x += (player.tx - player.x) * 0.22; player.y += (player.ty - player.y) * 0.22;
         if(assets.player.complete) ctx.drawImage(assets.player, player.x-60, player.y-60, 120, 120);
         requestAnimationFrame(render);

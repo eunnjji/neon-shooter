@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v45.0 - APEX</title>
+    <title>NEON SHOOTER v46.0 - AWS CLOUD</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; }
@@ -17,7 +17,6 @@
         #boss-ui { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: 85%; display: none; text-align: center; }
         .hp-container { height: 14px; background: rgba(255, 0, 255, 0.1); border: 2px solid var(--pink); border-radius: 30px; overflow: hidden; }
         #hp-bar { height: 100%; background: linear-gradient(90deg, var(--pink), #fff); width: 100%; transition: width 0.1s linear; }
-        /* 피격 연출용 오버레이 */
         #damage-flash { position: absolute; inset: 0; background: rgba(255, 0, 0, 0.3); display: none; pointer-events: none; z-index: 50; }
     </style>
 </head>
@@ -28,9 +27,10 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <div style="color:var(--mint); font-size:3.5rem; font-style:italic; text-shadow:0 0 45px var(--mint); margin-bottom:40px;">APEX PROTOCOL</div>
+        <div style="color:var(--mint); font-size:3.5rem; font-style:italic; text-shadow:0 0 45px var(--mint); margin-bottom:40px;">CLOUD INTEGRATED</div>
+        <input type="text" id="player-id" style="background:rgba(255,255,255,0.05); border:2.5px solid var(--mint); border-radius:25px; padding:18px; color:white; text-align:center; width:260px; margin-bottom:30px; font-size:1.2rem;" value="PILOT_01">
         <button class="main-btn" onclick="startGame()">MISSION START</button>
-        <div style="margin-top:20px; color:var(--gold); font-size:0.8rem;">V45.0 [FULL IMPACT] // QA 100%</div>
+        <div style="margin-top:25px; color:var(--gold); font-size:0.8rem; letter-spacing:3px;">V46.0 [AWS SYNC ENABLED]</div>
     </div>
 
     <div id="hud">
@@ -39,12 +39,13 @@
     </div>
 
     <div id="boss-ui">
-        <div id="boss-title" style="color:var(--pink); font-size:0.8rem; margin-bottom:10px; font-weight:bold; letter-spacing:4px;">ANOMALY STABILIZED</div>
+        <div style="color:var(--pink); font-size:0.8rem; margin-bottom:10px; font-weight:bold; letter-spacing:4px;">ANOMALY STABILIZED</div>
         <div class="hp-container"><div id="hp-bar"></div></div>
     </div>
 </div>
 
 <script>
+    const API_URL = "https://te3hlwv09c.execute-api.ap-northeast-2.amazonaws.com/default/";
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const assets = { bg: new Image(), player: new Image() };
@@ -72,6 +73,25 @@
         isPlaying = true; render();
     }
 
+    async function syncScoreToAWS(pilotId, finalScore) {
+        console.log("DB Sync Initializing...");
+        try {
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ns_pilot_id: pilotId,
+                    ns_score: finalScore,
+                    ns_updated_at: new Date().toISOString()
+                })
+            });
+            const result = await response.json();
+            console.log("AWS Sync Success:", result);
+        } catch (error) {
+            console.error("AWS Sync Failed:", error);
+        }
+    }
+
     window.addEventListener('touchmove', (e) => {
         if(!isPlaying) return; e.preventDefault();
         player.tx = Math.max(60, Math.min(width-60, e.touches[0].clientX));
@@ -92,11 +112,9 @@
         }
     }
 
-    // [추가] 텍스트 파티클 (스코어 팝업용)
     class TextParticle {
         constructor(x, y, text) {
-            this.x = x; this.y = y; this.text = text;
-            this.life = 1.0;
+            this.x = x; this.y = y; this.text = text; this.life = 1.0;
         }
         draw() {
             this.y -= 1; this.life -= 0.03;
@@ -119,12 +137,10 @@
 
             if(this.isBoss && this.scale > 0.8) {
                 this.scale = 0.8;
-                // [개선] 보스 페이즈 전환 (HP 50% 이하 시 빨라짐)
                 let pSpeed = (this.hp < 125) ? 0.03 : 0.015;
                 this.phase += pSpeed;
                 this.cx = centerX + Math.cos(this.phase) * (Math.sin(this.phase * 2) * 320);
                 this.cy = centerY + Math.sin(this.phase) * 140;
-                if(this.hp < 125) document.getElementById('boss-title').innerText = "CRITICAL LIMIT REACHED";
             } else {
                 let dist = this.progress * (width * 0.8);
                 this.cx = centerX + Math.cos(this.angle) * dist;
@@ -136,7 +152,7 @@
             if(!this.active || this.scale > 1.5) return;
             ctx.save(); ctx.translate(this.cx, this.cy); ctx.scale(this.scale, this.scale);
             if(this.hitFlash > 0) { ctx.filter = 'brightness(5)'; this.hitFlash--; }
-            ctx.strokeStyle = this.isBoss ? (this.hp < 125 ? '#ff0000' : '#ff00ff') : '#00ffff';
+            ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#00ffff';
             ctx.lineWidth = 5; ctx.strokeRect(-45, -45, 90, 90);
             ctx.restore(); ctx.filter = 'none';
         }
@@ -146,7 +162,6 @@
         const flash = document.getElementById('damage-flash');
         flash.style.display = 'block';
         setTimeout(() => flash.style.display = 'none', 100);
-        if (navigator.vibrate) navigator.vibrate(50); // 진동 피드백
     }
 
     function render() {
@@ -177,7 +192,10 @@
                     hp -= e.isBoss ? 40 : 15;
                     document.getElementById('hp-val').innerText = Math.max(0, hp);
                     triggerDamage();
-                    if(hp <= 0) location.reload();
+                    if(hp <= 0) {
+                        const pid = document.getElementById('player-id').value;
+                        syncScoreToAWS(pid, score).then(() => location.reload());
+                    }
                     if(e.isBoss) resetBoss();
                     enemies.splice(ei, 1); return;
                 }
@@ -197,7 +215,10 @@
                     }
                 }
             });
-            if(!e.active) { if(e.isBoss) { resetBoss(30); triggerDamage(); } enemies.splice(ei, 1); }
+            if(!e.active) { 
+                if(e.isBoss) { resetBoss(30); triggerDamage(); } 
+                enemies.splice(ei, 1); 
+            }
         });
 
         particles = particles.filter(p => p.life > 0);
@@ -210,8 +231,14 @@
 
     function resetBoss(penalty = 0) {
         boss = null; document.getElementById('boss-ui').style.display = 'none';
-        document.getElementById('boss-title').innerText = "ANOMALY STABILIZED";
-        if(penalty > 0) { hp -= penalty; document.getElementById('hp-val').innerText = Math.max(0, hp); if(hp <= 0) location.reload(); }
+        if(penalty > 0) {
+            hp -= penalty;
+            document.getElementById('hp-val').innerText = Math.max(0, hp);
+            if(hp <= 0) {
+                const pid = document.getElementById('player-id').value;
+                syncScoreToAWS(pid, score).then(() => location.reload());
+            }
+        }
         bossTrigger = score + 7000;
     }
 </script>

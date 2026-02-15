@@ -3,22 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.77 - CONSISTENCY</title>
+    <title>NEON SHOOTER v0.78 - TRIGGER & SYNC</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --bg: #000; }
-        /* svh 단위를 사용하여 모바일 주소창 문제를 해결 */
-        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: white; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; color: white; }
         canvas { display: block; position: absolute; top: 0; left: 0; z-index: 5; width: 100%; height: 100%; }
         #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 100; }
         .interactive { pointer-events: auto; }
-        #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(10px); }
-        .main-btn { padding: 18px 60px; background: transparent; border: 3px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.3rem; cursor: pointer; box-shadow: 0 0 15px var(--mint); letter-spacing: 2px; transition: 0.2s; }
-        .main-btn:active { transform: scale(0.95); background: rgba(0, 255, 204, 0.1); }
-        #rank-board { width: 280px; background: rgba(0, 255, 204, 0.05); border: 1px solid rgba(0, 255, 204, 0.3); border-radius: 20px; padding: 20px; margin-bottom: 25px; }
-        .rank-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-family: 'Courier New', monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
-        #hud { position: absolute; top: 0; width: 100%; padding: env(safe-area-inset-top) 20px 0; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; z-index: 150; }
-        .hud-box { background: rgba(0,0,0,0.7); border: 2px solid var(--mint); padding: 10px 15px; border-radius: 15px; font-weight: bold; }
-        #damage-flash { position: absolute; inset: 0; background: rgba(255, 0, 0, 0.4); display: none; z-index: 50; pointer-events: none; }
+        #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; }
+        .main-btn { padding: 18px 60px; background: transparent; border: 3px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.3rem; cursor: pointer; box-shadow: 0 0 15px var(--mint); letter-spacing: 2px; }
+        #rank-board { width: 280px; background: rgba(0, 255, 204, 0.1); border: 1px solid var(--mint); border-radius: 15px; padding: 15px; margin-bottom: 20px; }
+        .rank-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        #hud { position: absolute; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; z-index: 150; }
+        .hud-box { background: rgba(0,0,0,0.6); border: 1px solid var(--mint); padding: 8px 15px; border-radius: 10px; }
+        #damage-flash { position: absolute; inset: 0; background: rgba(255, 0, 0, 0.4); display: none; z-index: 50; }
     </style>
 </head>
 <body onload="initAssets()">
@@ -28,11 +26,11 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <h2 style="color:var(--mint); margin-bottom:20px; letter-spacing:5px;">NS_CONSISTENCY_v77</h2>
+        <h2 style="color:var(--mint); margin-bottom:20px;">NEON_SHOOTER_v78</h2>
         <div id="rank-board">
-            <div id="rank-list" style="text-align:center; font-size:0.8rem; color:var(--mint);">CONNECTING_AWS...</div>
+            <div id="rank-list" style="text-align:center; font-size:0.8rem;">SYNCING_AWS...</div>
         </div>
-        <input type="text" id="player-id" style="background:#111; border:2px solid var(--mint); color:white; padding:12px; border-radius:15px; width:200px; text-align:center; margin-bottom:25px; font-size:1rem;" value="PILOT_DBA">
+        <input type="text" id="player-id" style="background:#222; border:1px solid var(--mint); color:white; padding:10px; border-radius:10px; width:180px; text-align:center; margin-bottom:20px;" value="PILOT_DBA">
         <button class="main-btn" onclick="startGame()">MISSION START</button>
     </div>
 
@@ -47,7 +45,6 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const assets = { bg: new Image(), player: new Image() };
-    let dpr = window.devicePixelRatio || 1;
     let width, height, player, bullets = [], enemies = [], stars = [], frame = 0, score = 0, hp = 100, isPlaying = false;
 
     function initAssets() {
@@ -58,31 +55,27 @@
     }
 
     function resize() {
-        // High-DPI 대응 스케일링
-        width = window.innerWidth;
-        height = window.innerHeight;
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        ctx.scale(dpr, dpr);
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
     }
 
     async function fetchRankings() {
         try {
-            const res = await fetch(`${API_URL}?t=${Date.now()}`);
+            const res = await fetch(API_URL);
             const data = await res.json();
             const items = Array.isArray(data) ? data : (data.Items || []);
             document.getElementById('rank-list').innerHTML = items.sort((a,b)=>Number(b.ns_score)-Number(a.ns_score)).slice(0, 5).map((item, i) => 
                 `<div class="rank-item"><span>${i+1}. ${item.ns_pilot_id}</span><span>${item.ns_score}</span></div>`
-            ).join('') || "NO DATA";
-        } catch (e) { document.getElementById('rank-list').innerHTML = "AWS_LINK_OFFLINE"; }
+            ).join('') || "EMPTY";
+        } catch (e) { document.getElementById('rank-list').innerHTML = "AWS_OFFLINE"; }
     }
 
     function startGame() {
         resize();
         document.getElementById('launcher').style.display = 'none';
         document.getElementById('hud').style.visibility = 'visible';
-        player = { x: width/2, y: height-150, tx: width/2, ty: height-150 };
-        stars = Array(100).fill().map(() => ({ x: Math.random()*width, y: Math.random()*height, s: Math.random()*2 }));
+        player = { x: width/2, y: height-120, tx: width/2, ty: height-120 };
+        stars = Array(80).fill().map(() => ({ x: Math.random()*width, y: Math.random()*height, s: Math.random()*2 }));
         isPlaying = true;
         render();
     }
@@ -91,41 +84,44 @@
         if(!isPlaying) return;
         isPlaying = false;
         
-        // [DBA_MUST] 쓰기 완료를 보장하기 위해 버튼 상태 변경
-        const hudBoxes = document.querySelectorAll('.hud-box');
-        hudBoxes[0].innerText = "SYNCING_DATA...";
-
+        // [DBA] 쓰기 시도
         try {
             await fetch(API_URL, {
                 method: "POST",
-                mode: 'cors', // CORS 정책 준수
-                headers: { "Content-Type": "text/plain" }, // OPTIONS 요청을 피하기 위해 단순 헤더 사용 고려
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     ns_pilot_id: document.getElementById('player-id').value, 
                     ns_score: Number(score),
                     ns_updated_at: new Date().toISOString()
                 })
             });
-        } catch(e) { console.error("Write Error:", e); }
-        
+        } catch(e) { console.error("POST_FAILED"); }
         location.reload();
     }
 
-    // 터치 및 마우스 이벤트 통합 처리
-    const handleMove = (x, y) => {
-        if(!isPlaying) return;
-        player.tx = x;
-        player.ty = y - 50;
-    };
+    // --- 총알 클래스 복구 ---
+    class Bullet {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.speed = 7;
+            this.active = true;
+        }
+        update() {
+            this.y -= this.speed;
+            if (this.y < -10) this.active = false;
+        }
+        draw() {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(this.x - 2, this.y, 4, 15);
+        }
+    }
 
     window.addEventListener('touchmove', (e) => {
+        if(!isPlaying) return;
         e.preventDefault();
-        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+        player.tx = e.touches[0].clientX;
+        player.ty = e.touches[0].clientY - 50;
     }, { passive: false });
-
-    window.addEventListener('mousemove', (e) => {
-        handleMove(e.clientX, e.clientY);
-    });
 
     function render() {
         if(!isPlaying) return;
@@ -133,44 +129,63 @@
         ctx.fillStyle = '#000';
         ctx.fillRect(0,0,width,height);
         
-        // 배경 별 이동 (웹/모바일 속도 통일)
         stars.forEach(s => {
-            s.y += 1.2; if(s.y > height) s.y = 0;
-            ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(s.x, s.y, s.s, s.s);
+            s.y += 1.5; if(s.y > height) s.y = 0;
+            ctx.fillStyle = '#fff'; ctx.fillRect(s.x, s.y, s.s, s.s);
         });
 
-        // 플레이어 부드러운 이동 (Lerp)
         player.x += (player.tx - player.x) * 0.15;
         player.y += (player.ty - player.y) * 0.15;
         
         if(assets.player.complete) {
-            ctx.drawImage(assets.player, player.x-40, player.y-40, 80, 80);
+            ctx.drawImage(assets.player, player.x-35, player.y-35, 70, 70);
         } else {
-            ctx.fillStyle = '#00ffcc'; ctx.beginPath(); ctx.arc(player.x, player.y, 20, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#00ffcc'; ctx.fillRect(player.x-20, player.y-20, 40, 40);
         }
 
-        // 적 생성 및 물리
-        if(frame % 55 === 0) enemies.push({ x: Math.random()*width, y: -50 });
+        // 공격 로직 복구 (자동 사격)
+        if (frame % 15 === 0) {
+            bullets.push(new Bullet(player.x, player.y - 30));
+        }
 
-        enemies.forEach((e, i) => {
+        bullets.forEach((b, bi) => {
+            b.update();
+            b.draw();
+            if (!b.active) bullets.splice(bi, 1);
+        });
+
+        if(frame % 55 === 0) enemies.push({ x: Math.random()*width, y: -40 });
+
+        enemies.forEach((e, ei) => {
             e.y += 3.5;
-            ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 2;
-            ctx.strokeRect(e.x-20, e.y-20, 40, 40);
+            ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 2;
+            ctx.strokeRect(e.x-15, e.y-15, 30, 30);
             
-            // 충돌 판정
-            if(Math.hypot(e.x-player.x, e.y-player.y) < 45) {
-                hp -= 10; enemies.splice(i, 1);
+            // 플레이어와 충돌
+            if(Math.hypot(e.x-player.x, e.y-player.y) < 40) {
+                hp -= 10; enemies.splice(ei, 1);
                 document.getElementById('hp-val').innerText = hp;
                 document.getElementById('damage-flash').style.display='block';
                 setTimeout(()=>document.getElementById('damage-flash').style.display='none', 50);
                 if(hp <= 0) endGame();
             }
-            if(e.y > height) { enemies.splice(i, 1); score += 100; document.getElementById('score-val').innerText = score; }
+
+            // 총알과 충돌 (공격 판정 복구)
+            bullets.forEach((b, bi) => {
+                if (Math.hypot(e.x - b.x, e.y - b.y) < 25) {
+                    enemies.splice(ei, 1);
+                    bullets.splice(bi, 1);
+                    score += 100;
+                    document.getElementById('score-val').innerText = score;
+                }
+            });
+
+            if(e.y > height) enemies.splice(ei, 1);
         });
 
         requestAnimationFrame(render);
     }
-    window.addEventListener('resize', () => { resize(); });
+    window.addEventListener('resize', resize);
 </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.57 - FULL SYNC</title>
+    <title>NEON SHOOTER v0.56 - FINALITY</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; color: white; }
@@ -33,11 +33,11 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <div class="rank-title">NS_DATA_CORE_STABLE</div>
-        <div id="rank-board"><div id="rank-list"><div class="loading">SYNCING WITH AWS...</div></div></div>
+        <div class="rank-title">NS_DATA_CENTER</div>
+        <div id="rank-board"><div id="rank-list"><div class="loading">SYNCING...</div></div></div>
         <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem;" value="MASTER_DBA">
         <button class="main-btn" onclick="startGame()">MISSION START</button>
-        <div style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">v0.57 // FULL_STACK_ALIGNED</div>
+        <div id="status" style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">v0.56 // AWS_FINALITY</div>
     </div>
     <div id="hud">
         <div class="hud-box">SCORE: <span id="score-val">0</span></div>
@@ -63,11 +63,7 @@
     async function fetchRankings() {
         const rankList = document.getElementById('rank-list');
         try {
-            const response = await fetch(API_URL, { 
-                method: 'GET', 
-                mode: 'cors',
-                headers: { 'Accept': 'application/json' }
-            });
+            const response = await fetch(API_URL, { method: 'GET', mode: 'cors' });
             const data = await response.json();
             const items = Array.isArray(data) ? data : (data.Items || []);
             rankList.innerHTML = "";
@@ -83,21 +79,12 @@
     async function syncScoreToAWS(pid, s) {
         if(s < 10) return;
         try {
-            // [DBA 점검] headers에 명시적으로 규격화된 값 전달
             await fetch(API_URL, {
-                method: "POST", 
-                mode: 'cors',
-                headers: { 
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
-                },
-                body: JSON.stringify({ 
-                    ns_pilot_id: String(pid), 
-                    ns_score: Number(s), 
-                    ns_updated_at: new Date().toISOString() 
-                })
+                method: "POST", mode: 'cors',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ns_pilot_id: String(pid), ns_score: Number(s), ns_updated_at: new Date().toISOString() })
             });
-        } catch (e) { console.error("Write Error:", e); }
+        } catch (e) { console.error(e); }
     }
 
     function init() {
@@ -117,7 +104,6 @@
         if(!isPlaying) return;
         isPlaying = false;
         document.getElementById('exit-btn').innerText = "SAVING...";
-        // 비동기 전송 완료 후 리로드
         await syncScoreToAWS(document.getElementById('player-id').value, score);
         location.reload();
     }
@@ -145,7 +131,7 @@
             if(this.isBoss && this.scale > 0.8) {
                 this.scale = 0.8; this.phase += (this.hp<125?0.03:0.015);
                 this.cx = centerX + Math.cos(this.phase)*(Math.sin(this.phase*2)*320);
-                this.cy = centerY + Math.sin(this.phase) * 140;
+                this.cy = centerY + Math.sin(this.phase)*140;
             } else {
                 let dist = this.progress*(width*0.8);
                 this.cx = centerX + Math.cos(this.angle)*dist; this.cy = centerY + Math.sin(this.angle)*dist;

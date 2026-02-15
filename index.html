@@ -3,23 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.75 - HARD RESET</title>
+    <title>NEON SHOOTER v0.76</title>
     <style>
-        :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; color: white; }
-        canvas { display: block; width: 100%; height: 100%; position: absolute; top:0; left:0; z-index: 10; }
+        :root { --mint: #00ffcc; --pink: #ff00ff; --bg: #000; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; color: white; }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 5; }
         #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 100; }
         .interactive { pointer-events: auto; }
-        #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(20px); z-index: 200; transition: 0.5s; }
-        .main-btn { padding: 18px 70px; background: transparent; border: 3px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.5rem; cursor: pointer; box-shadow: 0 0 20px var(--mint); letter-spacing: 5px; margin-bottom: 25px; }
-        #rank-board { width: 300px; background: rgba(0, 255, 204, 0.05); border: 2px solid rgba(0, 255, 204, 0.3); border-radius: 20px; padding: 20px; margin-bottom: 20px; }
-        .rank-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-family: 'Courier New', monospace; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
+        #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; }
+        .main-btn { padding: 20px 60px; background: transparent; border: 3px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.2rem; cursor: pointer; box-shadow: 0 0 15px var(--mint); letter-spacing: 2px; }
+        #rank-board { width: 280px; background: rgba(0, 255, 204, 0.1); border: 1px solid var(--mint); border-radius: 15px; padding: 15px; margin-bottom: 20px; }
+        .rank-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
         #hud { position: absolute; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; z-index: 150; }
-        .hud-box { background: rgba(0, 0, 0, 0.7); border: 2px solid var(--mint); padding: 10px 15px; border-radius: 15px; font-size: 0.9rem; }
-        #exit-btn { background: rgba(255, 0, 255, 0.1); border: 2px solid var(--pink); color: var(--pink); padding: 10px 15px; border-radius: 15px; font-weight: bold; pointer-events: auto; cursor: pointer; }
-        #damage-flash { position: absolute; inset: 0; background: rgba(255, 0, 0, 0.3); display: none; pointer-events: none; z-index: 50; }
-        .loading { text-align: center; color: var(--mint); font-size: 0.8rem; animation: blink 1s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        .hud-box { background: rgba(0,0,0,0.6); border: 1px solid var(--mint); padding: 8px 15px; border-radius: 10px; }
+        #damage-flash { position: absolute; inset: 0; background: rgba(255, 0, 0, 0.4); display: none; z-index: 50; }
     </style>
 </head>
 <body onload="initAssets()">
@@ -29,17 +26,16 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <div style="color:var(--mint); margin-bottom:15px; letter-spacing:3px;">NS_HARD_RESET_v75</div>
+        <h2 style="color:var(--mint); margin-bottom:20px;">NEON_SHOOTER_v76</h2>
         <div id="rank-board">
-            <div id="rank-list"><div class="loading">CONNECTING_AWS...</div></div>
+            <div id="rank-list">LOADING_RANK...</div>
         </div>
-        <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:12px; color:white; text-align:center; width:220px; margin-bottom:20px;" value="PILOT_01">
+        <input type="text" id="player-id" style="background:#222; border:1px solid var(--mint); color:white; padding:10px; border-radius:10px; width:180px; text-align:center; margin-bottom:20px;" value="PILOT_01">
         <button class="main-btn" onclick="startGame()">MISSION START</button>
     </div>
 
     <div id="hud">
         <div class="hud-box">SCORE: <span id="score-val">0</span></div>
-        <div id="exit-btn" onclick="endGame()">SAVE & EXIT</div>
         <div class="hud-box" style="border-color:var(--pink); color:var(--pink);">HP: <span id="hp-val">100</span></div>
     </div>
 </div>
@@ -49,48 +45,43 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const assets = { bg: new Image(), player: new Image() };
-    let width, height, centerX, centerY, player, bullets = [], enemies = [], stars = [], frame = 0, score = 0, hp = 100, isPlaying = false;
+    let width, height, player, bullets = [], enemies = [], stars = [], frame = 0, score = 0, hp = 100, isPlaying = false;
 
     function initAssets() {
         assets.bg.src = 'assets/bg_night.png';
         assets.player.src = 'assets/player.png';
-        // 로딩 실패 대비 즉시 초기화
-        init();
+        resize();
         fetchRankings();
     }
 
-    async function fetchRankings() {
-        const rankList = document.getElementById('rank-list');
-        try {
-            const res = await fetch(`${API_URL}?t=${Date.now()}`);
-            const data = await res.json();
-            const items = Array.isArray(data) ? data : (data.Items || []);
-            rankList.innerHTML = items.sort((a,b)=>Number(b.ns_score)-Number(a.ns_score)).slice(0, 5).map((item, i) => 
-                `<div class="rank-item"><span>${i+1}. ${item.ns_pilot_id}</span><span>${Number(item.ns_score).toLocaleString()}</span></div>`
-            ).join('') || "NO DATA";
-        } catch (e) { rankList.innerHTML = "OFFLINE_MODE"; }
-    }
-
-    function init() {
+    function resize() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
-        centerX = width/2; centerY = height/2;
-        player = { x: centerX, y: height-150, tx: centerX, ty: height-150 };
-        stars = Array(100).fill().map(() => ({ x: Math.random()*width, y: Math.random()*height, s: Math.random()*2 }));
+    }
+
+    async function fetchRankings() {
+        try {
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            const items = Array.isArray(data) ? data : (data.Items || []);
+            document.getElementById('rank-list').innerHTML = items.sort((a,b)=>Number(b.ns_score)-Number(a.ns_score)).slice(0, 3).map((item, i) => 
+                `<div class="rank-item"><span>${i+1}. ${item.ns_pilot_id}</span><span>${item.ns_score}</span></div>`
+            ).join('') || "EMPTY";
+        } catch (e) { document.getElementById('rank-list').innerHTML = "OFFLINE"; }
     }
 
     function startGame() {
-        // [Hotfix] 확실한 화면 전환
+        resize();
         document.getElementById('launcher').style.display = 'none';
         document.getElementById('hud').style.visibility = 'visible';
+        player = { x: width/2, y: height-120, tx: width/2, ty: height-120 };
+        stars = Array(80).fill().map(() => ({ x: Math.random()*width, y: Math.random()*height, s: Math.random()*2 }));
         isPlaying = true;
         render();
     }
 
     async function endGame() {
-        if(!isPlaying) return;
         isPlaying = false;
-        document.getElementById('exit-btn').innerText = "SAVING...";
         try {
             await fetch(API_URL, {
                 method: "POST",
@@ -105,7 +96,7 @@
         if(!isPlaying) return;
         e.preventDefault();
         player.tx = e.touches[0].clientX;
-        player.ty = e.touches[0].clientY - 60;
+        player.ty = e.touches[0].clientY - 50;
     }, { passive: false });
 
     function render() {
@@ -115,40 +106,37 @@
         ctx.fillRect(0,0,width,height);
         
         stars.forEach(s => {
-            s.y += 2; if(s.y > height) s.y = 0;
+            s.y += 1.5; if(s.y > height) s.y = 0;
             ctx.fillStyle = '#fff'; ctx.fillRect(s.x, s.y, s.s, s.s);
         });
 
-        player.x += (player.tx - player.x) * 0.2;
-        player.y += (player.ty - player.y) * 0.2;
+        player.x += (player.tx - player.x) * 0.15;
+        player.y += (player.ty - player.y) * 0.15;
         
         if(assets.player.complete) {
-            ctx.drawImage(assets.player, player.x-40, player.y-40, 80, 80);
+            ctx.drawImage(assets.player, player.x-35, player.y-35, 70, 70);
         } else {
-            ctx.fillStyle = var(--mint); ctx.fillRect(player.x-20, player.y-20, 40, 40);
+            ctx.fillStyle = '#00ffcc'; ctx.fillRect(player.x-20, player.y-20, 40, 40);
         }
 
-        if(frame % 50 === 0) {
-            enemies.push({ x: Math.random()*width, y: -50 });
-            score += 10; document.getElementById('score-val').innerText = score;
-        }
+        if(frame % 60 === 0) enemies.push({ x: Math.random()*width, y: -40 });
 
         enemies.forEach((e, i) => {
-            e.y += 4;
-            ctx.strokeStyle = '#00ffcc';
-            ctx.strokeRect(e.x-20, e.y-20, 40, 40);
-            if(Math.hypot(e.x-player.x, e.y-player.y) < 50) {
+            e.y += 3.5;
+            ctx.strokeStyle = '#00ffcc'; ctx.strokeRect(e.x-15, e.y-15, 30, 30);
+            if(Math.hypot(e.x-player.x, e.y-player.y) < 40) {
                 hp -= 10; enemies.splice(i, 1);
                 document.getElementById('hp-val').innerText = hp;
                 document.getElementById('damage-flash').style.display='block';
                 setTimeout(()=>document.getElementById('damage-flash').style.display='none', 50);
                 if(hp <= 0) endGame();
             }
-            if(e.y > height) enemies.splice(i, 1);
+            if(e.y > height) { enemies.splice(i, 1); score += 10; document.getElementById('score-val').innerText = score; }
         });
 
         requestAnimationFrame(render);
     }
+    window.addEventListener('resize', resize);
 </script>
 </body>
 </html>

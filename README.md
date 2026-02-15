@@ -14,7 +14,7 @@
 ### 📊 Database (DynamoDB)
 | Table Name | Partition Key (PK) | Sort Key (SK) | Description |
 | :--- | :--- | :--- | :--- |
-| **`ns_leaderboard`** | `game_id` | `score_composite` | 글로벌 랭킹 시스템 |
+| **`ns_rankings`** | `ns_pilot_id` | `ns_score` | 글로벌 랭킹 시스템 |
 | **`ns_user_stat`** | `user_id` | - | 유저 상태 및 인벤토리 |
 | **`ns_mission_info`** | `mission_id` | - | 미션 마스터 데이터 |
 | **`ns_user_mission_stat`** | `user_id` | `mission_id` | 유저별 미션 진행도 |

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.66 - ZERO DEFECT</title>
+    <title>NEON SHOOTER v0.67 - ABSOLUTE INTEGRITY</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; color: white; }
@@ -38,13 +38,13 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <div class="rank-title">NS_DATA_CORE_v66</div>
+        <div class="rank-title">NS_ABSOLUTE_v67</div>
         <div id="rank-board">
-            <div id="rank-list"><div class="loading">HANDSHAKING WITH AWS...</div></div>
+            <div id="rank-list"><div class="loading">DIAGNOSING_AWS_CONNECTION...</div></div>
         </div>
-        <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem;" value="PILOT_DBA">
+        <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem;" value="PILOT_01">
         <button class="main-btn" onclick="startGame()">MISSION START</button>
-        <div style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">STABLE PERSISTENCE LAYER ACTIVE</div>
+        <div id="sync-notice" style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">TRANSACTION_MODE: STRICT</div>
     </div>
 
     <div id="hud">
@@ -74,7 +74,8 @@
     async function fetchRankings() {
         const rankList = document.getElementById('rank-list');
         try {
-            const response = await fetch(`${API_URL}?t=${Date.now()}`, { method: 'GET', mode: 'cors' });
+            const response = await fetch(`${API_URL}?cache_bust=${Date.now()}`, { method: 'GET', mode: 'cors' });
+            if (!response.ok) throw new Error("API_ERROR");
             const data = await response.json();
             const items = Array.isArray(data) ? data : (data.Items || []);
             rankList.innerHTML = "";
@@ -84,11 +85,11 @@
                 div.innerHTML = `<span>${i+1}. ${item.ns_pilot_id}</span><span>${Number(item.ns_score).toLocaleString()}</span>`;
                 rankList.appendChild(div);
             });
-        } catch (e) { rankList.innerHTML = "<div class='loading'>SYNC ERROR</div>"; }
+        } catch (e) { rankList.innerHTML = "<div class='loading' style='color:var(--pink)'>INFRA_SYNC_ERROR</div>"; }
     }
 
     async function syncScoreToAWS(pid, s) {
-        if (s < 1) return;
+        if (s < 1) return true;
         try {
             const response = await fetch(API_URL, {
                 method: "POST",
@@ -101,7 +102,10 @@
                 })
             });
             return response.ok;
-        } catch (e) { console.error("Write Error:", e); return false; }
+        } catch (e) { 
+            console.error("Critical Write Error:", e); 
+            return false; 
+        }
     }
 
     function init() {
@@ -121,11 +125,13 @@
         if(!isPlaying) return;
         isPlaying = false;
         const exitBtn = document.getElementById('exit-btn');
-        exitBtn.innerText = "DB_SYNCING...";
+        exitBtn.innerText = "PUSHING_DATA...";
+        exitBtn.style.background = "rgba(255, 204, 0, 0.3)";
+        exitBtn.style.color = "var(--gold)";
         
-        // [수정] 저장이 완료될 때까지 확실히 대기
-        const success = await syncScoreToAWS(document.getElementById('player-id').value, score);
-        if(!success) alert("AWS_SYNC_FAILED: Check Network or Lambda.");
+        // [DBA_MUST] 저장 완료를 동기적으로 기다려 유실 방지
+        const result = await syncScoreToAWS(document.getElementById('player-id').value, score);
+        if(!result) alert("DATABASE_WRITE_FAILED\nCheck Lambda Role or DynamoDB Throughput.");
         
         location.reload();
     }

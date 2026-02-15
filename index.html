@@ -3,26 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.53 - CLOUD LINK</title>
+    <title>NEON SHOOTER v0.54 - FINAL SYNC</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; color: white; }
         canvas { display: block; width: 100%; height: 100%; }
         #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 100; }
         .interactive { pointer-events: auto; }
+        
         #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.98); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(40px); transition: 0.8s; }
         .main-btn { padding: 18px 70px; background: transparent; border: 3px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.5rem; cursor: pointer; box-shadow: 0 0 25px var(--mint); transition: 0.3s; letter-spacing: 5px; margin-bottom: 25px; }
+        
         #rank-board { width: 320px; background: rgba(0, 255, 204, 0.05); border: 2px solid rgba(0, 255, 204, 0.3); border-radius: 20px; padding: 25px; margin-bottom: 30px; }
         .rank-title { color: var(--mint); font-size: 1.2rem; text-align: center; margin-bottom: 20px; letter-spacing: 5px; }
         .rank-item { display: flex; justify-content: space-between; margin-bottom: 12px; font-family: 'Courier New', monospace; font-size: 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
         .rank-item.top { color: var(--gold); font-weight: bold; }
+
         #hud { position: absolute; top: 0; width: 100%; padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; }
         .hud-box { background: rgba(0, 0, 0, 0.8); border: 2px solid var(--mint); padding: 10px 20px; border-radius: 20px; }
         #exit-btn { background: rgba(255, 0, 255, 0.15); border: 2.5px solid var(--pink); color: var(--pink); padding: 10px 20px; border-radius: 20px; font-weight: bold; pointer-events: auto; cursor: pointer; }
+
         #boss-ui { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: 80%; display: none; }
         .hp-container { height: 10px; background: rgba(255, 0, 255, 0.1); border: 1px solid var(--pink); border-radius: 10px; overflow: hidden; }
         #hp-bar { height: 100%; background: var(--pink); width: 100%; }
         #damage-flash { position: absolute; inset: 0; background: rgba(255, 0, 0, 0.25); display: none; pointer-events: none; z-index: 50; }
+        
         .loading { text-align: center; color: var(--mint); font-size: 0.8rem; animation: blink 1s infinite; }
         @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     </style>
@@ -35,10 +40,13 @@
 <div id="ui-layer">
     <div id="launcher" class="interactive">
         <div class="rank-title">NS_GLOBAL_RANK</div>
-        <div id="rank-board"><div id="rank-list"><div class="loading">SYNCING WITH AWS...</div></div></div>
+        <div id="rank-board">
+            <div id="rank-list"><div class="loading">SYNCING WITH AWS...</div></div>
+        </div>
+
         <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem;" value="MASTER_DBA">
         <button class="main-btn" onclick="startGame()">MISSION START</button>
-        <div style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">v0.53 // ES MODULE ALIGNED</div>
+        <div id="db-status" style="color:rgba(255,255,255,0.4); font-size:0.7rem; letter-spacing:2px;">v0.54 // FULL DUPLEX SYNC</div>
     </div>
 
     <div id="hud">
@@ -46,7 +54,10 @@
         <div id="exit-btn" onclick="endGame()">SAVE & EXIT</div>
         <div class="hud-box" style="border-color:var(--pink); color:var(--pink);">HP: <span id="hp-val">100</span></div>
     </div>
-    <div id="boss-ui"><div class="hp-container"><div id="hp-bar"></div></div></div>
+
+    <div id="boss-ui">
+        <div class="hp-container"><div id="hp-bar"></div></div>
+    </div>
 </div>
 
 <script>
@@ -67,29 +78,42 @@
     async function fetchRankings() {
         const rankList = document.getElementById('rank-list');
         try {
-            const response = await fetch(API_URL, { method: 'GET', mode: 'cors' });
-            if (!response.ok) throw new Error(`HTTP_${response.status}`);
+            const response = await fetch(API_URL, { 
+                method: 'GET', 
+                mode: 'cors',
+                headers: { 'Accept': 'application/json' }
+            });
             const data = await response.json();
             const items = Array.isArray(data) ? data : (data.Items || []);
             
             rankList.innerHTML = "";
             if(items.length > 0) {
-                items.slice(0, 5).forEach((item, index) => {
-                    const div = document.createElement('div');
-                    div.className = `rank-item ${index === 0 ? 'top' : ''}`;
-                    div.innerHTML = `<span>${index+1}. ${item.ns_pilot_id}</span><span>${Number(item.ns_score).toLocaleString()}</span>`;
-                    rankList.appendChild(div);
-                });
-            } else { rankList.innerHTML = "<div class='loading'>NO DATA</div>"; }
-        } catch (e) { rankList.innerHTML = "<div class='loading' style='color:var(--pink)'>SYNC ERROR</div>"; }
+                // DBA 정렬: 점수 내림차순
+                items.sort((a, b) => Number(b.ns_score) - Number(a.ns_score))
+                    .slice(0, 5)
+                    .forEach((item, index) => {
+                        const div = document.createElement('div');
+                        div.className = `rank-item ${index === 0 ? 'top' : ''}`;
+                        div.innerHTML = `<span>${index+1}. ${item.ns_pilot_id}</span><span>${Number(item.ns_score).toLocaleString()}</span>`;
+                        rankList.appendChild(div);
+                    });
+            } else { rankList.innerHTML = "<div class='loading'>NO RECORD FOUND</div>"; }
+        } catch (e) { 
+            console.error("Fetch Error:", e);
+            rankList.innerHTML = "<div class='loading' style='color:var(--pink)'>SYNC ERROR</div>"; 
+        }
     }
 
     async function syncScoreToAWS(pilotId, finalScore) {
+        if(finalScore < 10) return true; 
         try {
             const response = await fetch(API_URL, {
                 method: "POST",
                 mode: 'cors',
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
                 body: JSON.stringify({
                     ns_pilot_id: String(pilotId),
                     ns_score: Number(finalScore),
@@ -97,7 +121,10 @@
                 })
             });
             return response.ok;
-        } catch (error) { return false; }
+        } catch (error) { 
+            console.error("POST Error:", error);
+            return false; 
+        }
     }
 
     function init() {
@@ -118,9 +145,13 @@
         if(!isPlaying) return;
         isPlaying = false;
         const pid = document.getElementById('player-id').value || "PILOT";
-        document.getElementById('exit-btn').innerText = "SAVING...";
-        await syncScoreToAWS(pid, score);
-        location.reload();
+        const exitBtn = document.getElementById('exit-btn');
+        
+        exitBtn.innerText = "SAVING...";
+        const success = await syncScoreToAWS(pid, score);
+        
+        if(!success) alert("AWS WRITE ERROR: Check Lambda POST logic.");
+        location.reload(); 
     }
 
     window.addEventListener('touchmove', (e) => {
@@ -129,6 +160,7 @@
         player.ty = Math.max(150, Math.min(height-100, e.touches[0].clientY - 80));
     }, { passive: false });
 
+    // --- GAME ENGINE CLASSES ---
     class Bullet {
         constructor(x, y) {
             this.x = x; this.y = y; this.scale = 1.0;

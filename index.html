@@ -52,8 +52,7 @@
 </div>
 
 <script>
-    const API_URL = "https://te3hlwv09c.execute-api.ap-northeast-2.amazonaws.com/default/";
-    const canvas = document.getElementById('gameCanvas');
+const API_URL = "https://yjcl8duzsd.execute-api.ap-northeast-2.amazonaws.com/NeonShooter_Logic-API_2nd/items";  const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const assets = { bg: new Image(), player: new Image() };
     let width, height, centerX, centerY, player, bullets = [], enemies = [], stars = [], frame = 0, score = 0, hp = 100, isPlaying = false, boss = null, bossTrigger = 3000;
@@ -64,18 +63,30 @@
         assets.player.onload = () => { init(); fetchRankings(); };
     }
 
-    async function fetchRankings() {
-        const rankList = document.getElementById('rank-list');
-        try {
-            const response = await fetch(`${API_URL}?t=${Date.now()}`, { method: 'GET', mode: 'cors' });
-            const data = await response.json();
-            const items = Array.isArray(data) ? data : (data.Items || []);
-            rankList.innerHTML = items.sort((a,b)=>Number(b.ns_score)-Number(a.ns_score)).slice(0, 5).map((item, i) => 
-                `<div class="rank-item"><span>${i+1}. ${item.ns_pilot_id}</span><span>${Number(item.ns_score).toLocaleString()}</span></div>`
-            ).join('') || "NO DATA";
-        } catch (e) { rankList.innerHTML = "DB_SYNC_ERROR"; }
-    }
+async function fetchRankings() {
+    const rankList = document.getElementById('rank-list');
+    try {
+        const response = await fetch(API_URL); // 캐시 방지를 위해 ?t=Date.now() 추가 가능
+        const data = await response.json();
+        // 데이터 출력 로직...
+    } catch (e) { rankList.innerHTML = "DB_OFFLINE"; }
+}
 
+// 점수 저장 (POST)
+async function endGame() {
+    isPlaying = false;
+    try {
+        await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }, // 대소문자 확인
+            body: JSON.stringify({ 
+                ns_pilot_id: document.getElementById('player-id').value, 
+                ns_score: score 
+            })
+        });
+    } catch(e) { console.error("SAVE ERROR", e); }
+    location.reload();
+    
     async function syncScoreToAWS(pid, s) {
         if (s < 1) return true;
         try {

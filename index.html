@@ -3,22 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.79 - ATOMIC FIX</title>
+    <title>NEON SHOOTER v0.80 - FINAL SYNC</title>
     <style>
-        :root { --mint: #00ffcc; --pink: #ff00ff; --bg: #000; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; color: white; }
-        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 5; width: 100%; height: 100%; }
+        :root { --mint: #00ffcc; --pink: #ff00ff; --gold: #ffcc00; --bg: #000; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial Black', sans-serif; color: white; }
+        canvas { display: block; width: 100%; height: 100%; position: absolute; z-index: 10; }
         #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 100; }
         .interactive { pointer-events: auto; }
-        #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; }
-        .main-btn { padding: 18px 60px; background: transparent; border: 3px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.3rem; cursor: pointer; box-shadow: 0 0 15px var(--mint); letter-spacing: 2px; }
-        #rank-board { width: 280px; background: rgba(0, 255, 204, 0.1); border: 1px solid var(--mint); border-radius: 15px; padding: 15px; margin-bottom: 20px; }
-        .rank-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        #hud { position: absolute; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; z-index: 150; }
-        .hud-box { background: rgba(0,0,0,0.6); border: 1px solid var(--mint); padding: 8px 15px; border-radius: 10px; }
-        #damage-flash { position: absolute; inset: 0; background: rgba(255, 0, 0, 0.4); display: none; z-index: 50; }
-        .loading { text-align: center; color: var(--mint); animation: blink 1s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        #launcher { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(20px); z-index: 200; }
+        .main-btn { padding: 18px 70px; background: transparent; border: 3px solid var(--mint); color: var(--mint); border-radius: 50px; font-weight: bold; font-size: 1.5rem; cursor: pointer; box-shadow: 0 0 20px var(--mint); letter-spacing: 5px; margin-bottom: 25px; transition: 0.3s; }
+        #rank-board { width: 320px; background: rgba(0, 255, 204, 0.05); border: 2px solid rgba(0, 255, 204, 0.3); border-radius: 20px; padding: 25px; margin-bottom: 30px; }
+        .rank-item { display: flex; justify-content: space-between; margin-bottom: 12px; font-family: 'Courier New', monospace; font-size: 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
+        #hud { position: absolute; top: 0; width: 100%; padding: env(safe-area-inset-top) 25px 0; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; z-index: 150; }
+        .hud-box { background: rgba(0, 0, 0, 0.8); border: 2px solid var(--mint); padding: 10px 20px; border-radius: 20px; }
+        #exit-btn { background: rgba(255, 0, 255, 0.15); border: 2.5px solid var(--pink); color: var(--pink); padding: 10px 20px; border-radius: 20px; font-weight: bold; pointer-events: auto; cursor: pointer; }
+        #boss-ui { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); width: 80%; display: none; z-index: 160; }
+        .hp-container { height: 10px; background: rgba(255, 0, 255, 0.1); border: 1px solid var(--pink); border-radius: 10px; overflow: hidden; }
+        #hp-bar { height: 100%; background: var(--pink); width: 100%; }
+        #damage-flash { position: absolute; inset: 0; background: rgba(255, 0, 0, 0.25); display: none; pointer-events: none; z-index: 50; }
+        .loading { text-align: center; color: var(--mint); font-size: 0.8rem; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     </style>
 </head>
 <body onload="initAssets()">
@@ -28,17 +32,22 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <h2 style="color:var(--mint); margin-bottom:20px; letter-spacing:3px;">NEON_SHOOTER_v79</h2>
+        <div style="color:var(--mint); margin-bottom:20px; letter-spacing:5px;">NS_FINAL_SYNC_v80</div>
         <div id="rank-board">
-            <div id="rank-list" class="loading">DYNAMO_SYNCING...</div>
+            <div id="rank-list"><div class="loading">SYNCING_AWS...</div></div>
         </div>
-        <input type="text" id="player-id" style="background:#222; border:1px solid var(--mint); color:white; padding:10px; border-radius:10px; width:180px; text-align:center; margin-bottom:20px;" value="PILOT_DBA">
+        <input type="text" id="player-id" style="background:none; border:2px solid var(--mint); border-radius:20px; padding:15px; color:white; text-align:center; width:240px; margin-bottom:25px; font-size:1.1rem;" value="MASTER_DBA">
         <button class="main-btn" onclick="startGame()">MISSION START</button>
     </div>
 
     <div id="hud">
         <div class="hud-box">SCORE: <span id="score-val">0</span></div>
+        <div id="exit-btn" onclick="endGame()">SAVE & EXIT</div>
         <div class="hud-box" style="border-color:var(--pink); color:var(--pink);">HP: <span id="hp-val">100</span></div>
+    </div>
+
+    <div id="boss-ui">
+        <div class="hp-container"><div id="hp-bar"></div></div>
     </div>
 </div>
 
@@ -47,153 +56,158 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const assets = { bg: new Image(), player: new Image() };
-    let width, height, player, bullets = [], enemies = [], stars = [], frame = 0, score = 0, hp = 100, isPlaying = false;
+    let width, height, centerX, centerY, player, bullets = [], enemies = [], stars = [], frame = 0, score = 0, hp = 100, isPlaying = false, boss = null, bossTrigger = 3000;
 
     function initAssets() {
         assets.bg.src = 'assets/bg_night.png';
         assets.player.src = 'assets/player.png';
-        resize();
-        fetchRankings();
-    }
-
-    function resize() {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
+        assets.player.onload = () => { init(); fetchRankings(); };
     }
 
     async function fetchRankings() {
+        const rankList = document.getElementById('rank-list');
         try {
-            const res = await fetch(`${API_URL}?t=${Date.now()}`);
-            const data = await res.json();
+            const response = await fetch(`${API_URL}?t=${Date.now()}`, { method: 'GET', mode: 'cors' });
+            const data = await response.json();
             const items = Array.isArray(data) ? data : (data.Items || []);
-            document.getElementById('rank-list').innerHTML = items.sort((a,b)=>Number(b.ns_score)-Number(a.ns_score)).slice(0, 5).map((item, i) => 
-                `<div class="rank-item"><span>${i+1}. ${item.ns_pilot_id}</span><span>${item.ns_score}</span></div>`
+            rankList.innerHTML = items.sort((a,b)=>Number(b.ns_score)-Number(a.ns_score)).slice(0, 5).map((item, i) => 
+                `<div class="rank-item"><span>${i+1}. ${item.ns_pilot_id}</span><span>${Number(item.ns_score).toLocaleString()}</span></div>`
             ).join('') || "NO DATA";
-        } catch (e) { document.getElementById('rank-list').innerHTML = "DB_OFFLINE"; }
+        } catch (e) { rankList.innerHTML = "DB_SYNC_ERROR"; }
+    }
+
+    async function syncScoreToAWS(pid, s) {
+        if (s < 1) return true;
+        try {
+            const response = await fetch(API_URL, {
+                method: "POST",
+                mode: 'cors',
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ ns_pilot_id: String(pid), ns_score: Number(s), ns_updated_at: new Date().toISOString() })
+            });
+            return response.ok;
+        } catch (e) { return false; }
+    }
+
+    function init() {
+        width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight;
+        centerX = width/2; centerY = height/2;
+        player = { x: centerX, y: height-180, tx: centerX, ty: height-180 };
+        stars = Array(150).fill().map(() => ({ x: Math.random()*width-centerX, y: Math.random()*height-centerY, z: Math.random()*width }));
     }
 
     function startGame() {
-        resize();
         document.getElementById('launcher').style.display = 'none';
         document.getElementById('hud').style.visibility = 'visible';
-        player = { x: width/2, y: height-120, tx: width/2, ty: height-120 };
-        stars = Array(80).fill().map(() => ({ x: Math.random()*width, y: Math.random()*height, s: Math.random()*2 }));
-        isPlaying = true;
-        render();
+        isPlaying = true; render();
     }
 
     async function endGame() {
         if(!isPlaying) return;
         isPlaying = false;
-        
-        // UI 피드백
-        const hudBox = document.querySelector('.hud-box');
-        hudBox.innerText = "COMMIT_PENDING...";
-
-        try {
-            await fetch(API_URL, {
-                method: "POST",
-                mode: "cors",
-                headers: {
-                    "content-type": "application/json" // 소문자 고정으로 CORS 트러블슈팅
-                },
-                body: JSON.stringify({ 
-                    ns_pilot_id: document.getElementById('player-id').value, 
-                    ns_score: Number(score),
-                    ns_updated_at: new Date().toISOString()
-                })
-            });
-        } catch(e) { console.error("POST_FAILED", e); }
+        document.getElementById('exit-btn').innerText = "WRITING...";
+        const success = await syncScoreToAWS(document.getElementById('player-id').value, score);
+        if(!success) alert("DB_WRITE_FAILED: Check API Gateway CORS or Lambda Response Format.");
         location.reload();
     }
 
-    // --- 총알 엔진 복구 ---
+    // --- GAME ENGINE ---
     class Bullet {
-        constructor(x, y) {
-            this.x = x; this.y = y;
-            this.speed = 8;
-            this.active = true;
+        constructor(x, y) { this.x = x; this.y = y; this.scale = 1; this.vx = (centerX-x)*0.09; this.vy = (centerY-y)*0.09; this.active = true; }
+        draw() {
+            this.x += this.vx; this.y += this.vy; this.scale *= 0.93;
+            if(this.scale < 0.05) this.active = false;
+            ctx.fillStyle = `rgba(255,255,255,${this.scale+0.3})`;
+            ctx.beginPath(); ctx.arc(this.x, this.y, 8*this.scale, 0, Math.PI*2); ctx.fill();
+        }
+    }
+
+    class Enemy {
+        constructor(isBoss = false) {
+            this.isBoss = isBoss; this.angle = Math.random()*Math.PI*2; this.progress = 0; this.scale = 0.01;
+            this.hp = isBoss ? 250 : 1; this.maxHp = this.hp; this.active = true; this.phase = 0; this.hitFlash = 0;
         }
         update() {
-            this.y -= this.speed;
-            if (this.y < -20) this.active = false;
+            this.progress += (this.isBoss ? 0.004 : 0.015); this.scale = this.progress * 2;
+            if(this.isBoss && this.scale > 0.8) {
+                this.scale = 0.8; this.phase += 0.015;
+                this.cx = centerX + Math.cos(this.phase)*(Math.sin(this.phase*2)*320);
+                this.cy = centerY + Math.sin(this.phase) * 140;
+            } else {
+                let dist = this.progress*(width*0.8);
+                this.cx = centerX + Math.cos(this.angle)*dist; this.cy = centerY + Math.sin(this.angle)*dist;
+            }
+            if(this.scale > 1.8) this.active = false;
         }
         draw() {
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(this.x - 2, this.y, 4, 15);
+            if(!this.active || this.scale > 1.5) return;
+            ctx.save(); ctx.translate(this.cx, this.cy); ctx.scale(this.scale, this.scale);
+            if(this.hitFlash > 0) { ctx.filter = 'brightness(5)'; this.hitFlash--; }
+            ctx.strokeStyle = this.isBoss ? '#ff00ff' : '#00ffff'; ctx.lineWidth = 5; ctx.strokeRect(-45,-45,90,90);
+            ctx.restore();
         }
     }
 
     window.addEventListener('touchmove', (e) => {
-        if(!isPlaying) return;
-        e.preventDefault();
-        player.tx = e.touches[0].clientX;
-        player.ty = e.touches[0].clientY - 60;
+        if(!isPlaying) return; e.preventDefault();
+        player.tx = e.touches[0].clientX; player.ty = e.touches[0].clientY - 80;
     }, { passive: false });
 
     function render() {
         if(!isPlaying) return;
-        frame++;
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0,0,width,height);
+        frame++; ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle = '#000'; ctx.fillRect(0,0,width,height);
         
         stars.forEach(s => {
-            s.y += 1.5; if(s.y > height) s.y = 0;
-            ctx.fillStyle = '#fff'; ctx.fillRect(s.x, s.y, s.s, s.s);
+            s.z -= (boss ? 40 : 20); if(s.z <= 0) s.z = width;
+            let x = (s.x/s.z)*width+centerX; let y = (s.y/s.z)*height+centerY;
+            ctx.fillStyle = `rgba(0,255,204,${1-s.z/width})`; ctx.fillRect(x,y,2,2);
         });
 
-        player.x += (player.tx - player.x) * 0.18;
-        player.y += (player.ty - player.y) * 0.18;
-        
-        if(assets.player.complete) {
-            ctx.drawImage(assets.player, player.x-40, player.y-40, 80, 80);
-        } else {
-            ctx.fillStyle = '#00ffcc'; ctx.fillRect(player.x-20, player.y-20, 40, 40);
+        if(frame%7===0) bullets.push(new Bullet(player.x-40, player.y), new Bullet(player.x+40, player.y));
+        bullets = bullets.filter(b=>b.active); bullets.forEach(b=>b.draw());
+
+        if(frame%50===0 && !boss) enemies.push(new Enemy());
+        if(score >= bossTrigger && !boss) {
+            boss = new Enemy(true); enemies.push(boss);
+            document.getElementById('boss-ui').style.display = 'block';
         }
-
-        // 공격 시스템 (자동 사격)
-        if (frame % 12 === 0) {
-            bullets.push(new Bullet(player.x, player.y - 30));
-        }
-
-        bullets.forEach((b, bi) => {
-            b.update();
-            b.draw();
-            if (!b.active) bullets.splice(bi, 1);
-        });
-
-        if(frame % 50 === 0) enemies.push({ x: Math.random()*width, y: -50 });
 
         enemies.forEach((e, ei) => {
-            e.y += 3.8;
-            ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 2;
-            ctx.strokeRect(e.x-20, e.y-20, 40, 40);
-            
-            // 플레이어 충돌 판정
-            if(Math.hypot(e.x-player.x, e.y-player.y) < 45) {
-                hp -= 10; enemies.splice(ei, 1);
-                document.getElementById('hp-val').innerText = hp;
-                document.getElementById('damage-flash').style.display='block';
-                setTimeout(()=>document.getElementById('damage-flash').style.display='none', 50);
-                if(hp <= 0) endGame();
+            e.update(); e.draw();
+            if(e.active && e.scale > 0.8 && e.scale < 1.2) {
+                if(Math.hypot(e.cx-player.x, e.cy-player.y) < 75) {
+                    hp -= e.isBoss ? 40 : 15;
+                    document.getElementById('hp-val').innerText = Math.max(0, hp);
+                    document.getElementById('damage-flash').style.display='block';
+                    setTimeout(()=>document.getElementById('damage-flash').style.display='none', 100);
+                    if(hp <= 0) endGame();
+                    if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; }
+                    enemies.splice(ei, 1); return;
+                }
             }
-
-            // 총알 충돌 판정 (공격 복구)
             bullets.forEach((b, bi) => {
-                if (Math.hypot(e.x - b.x, e.y - b.y) < 30) {
-                    enemies.splice(ei, 1);
-                    bullets.splice(bi, 1);
-                    score += 100;
-                    document.getElementById('score-val').innerText = score;
+                let hitBox = e.isBoss ? 170 : 100;
+                if(e.active && b.active && Math.hypot(e.cx-b.x, e.cy-b.y) < hitBox*e.scale) {
+                    e.hp--; e.hitFlash = 3; bullets.splice(bi, 1);
+                    if(e.isBoss) document.getElementById('hp-bar').style.width = (e.hp/e.maxHp)*100+'%';
+                    if(e.hp <= 0) {
+                        score += e.isBoss ? 5000 : 100;
+                        document.getElementById('score-val').innerText = score.toLocaleString();
+                        if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; bossTrigger = score+7000; }
+                        enemies.splice(ei, 1);
+                    }
                 }
             });
-
-            if(e.y > height) enemies.splice(ei, 1);
+            if(!e.active) {
+                if(e.isBoss) { boss = null; document.getElementById('boss-ui').style.display='none'; hp-=30; if(hp<=0) endGame(); bossTrigger=score+7000; }
+                enemies.splice(ei, 1);
+            }
         });
 
+        player.x += (player.tx-player.x)*0.22; player.y += (player.ty-player.y)*0.22;
+        if(assets.player.complete) ctx.drawImage(assets.player, player.x-60, player.y-60, 120, 120);
         requestAnimationFrame(render);
     }
-    window.addEventListener('resize', resize);
 </script>
 </body>
 </html>

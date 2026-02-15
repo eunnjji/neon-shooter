@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON SHOOTER v0.78 - TRIGGER & SYNC</title>
+    <title>NEON SHOOTER v0.79 - ATOMIC FIX</title>
     <style>
         :root { --mint: #00ffcc; --pink: #ff00ff; --bg: #000; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100svh; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; color: white; }
@@ -17,6 +17,8 @@
         #hud { position: absolute; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; visibility: hidden; box-sizing: border-box; z-index: 150; }
         .hud-box { background: rgba(0,0,0,0.6); border: 1px solid var(--mint); padding: 8px 15px; border-radius: 10px; }
         #damage-flash { position: absolute; inset: 0; background: rgba(255, 0, 0, 0.4); display: none; z-index: 50; }
+        .loading { text-align: center; color: var(--mint); animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
     </style>
 </head>
 <body onload="initAssets()">
@@ -26,9 +28,9 @@
 
 <div id="ui-layer">
     <div id="launcher" class="interactive">
-        <h2 style="color:var(--mint); margin-bottom:20px;">NEON_SHOOTER_v78</h2>
+        <h2 style="color:var(--mint); margin-bottom:20px; letter-spacing:3px;">NEON_SHOOTER_v79</h2>
         <div id="rank-board">
-            <div id="rank-list" style="text-align:center; font-size:0.8rem;">SYNCING_AWS...</div>
+            <div id="rank-list" class="loading">DYNAMO_SYNCING...</div>
         </div>
         <input type="text" id="player-id" style="background:#222; border:1px solid var(--mint); color:white; padding:10px; border-radius:10px; width:180px; text-align:center; margin-bottom:20px;" value="PILOT_DBA">
         <button class="main-btn" onclick="startGame()">MISSION START</button>
@@ -61,13 +63,13 @@
 
     async function fetchRankings() {
         try {
-            const res = await fetch(API_URL);
+            const res = await fetch(`${API_URL}?t=${Date.now()}`);
             const data = await res.json();
             const items = Array.isArray(data) ? data : (data.Items || []);
             document.getElementById('rank-list').innerHTML = items.sort((a,b)=>Number(b.ns_score)-Number(a.ns_score)).slice(0, 5).map((item, i) => 
                 `<div class="rank-item"><span>${i+1}. ${item.ns_pilot_id}</span><span>${item.ns_score}</span></div>`
-            ).join('') || "EMPTY";
-        } catch (e) { document.getElementById('rank-list').innerHTML = "AWS_OFFLINE"; }
+            ).join('') || "NO DATA";
+        } catch (e) { document.getElementById('rank-list').innerHTML = "DB_OFFLINE"; }
     }
 
     function startGame() {
@@ -84,31 +86,37 @@
         if(!isPlaying) return;
         isPlaying = false;
         
-        // [DBA] 쓰기 시도
+        // UI 피드백
+        const hudBox = document.querySelector('.hud-box');
+        hudBox.innerText = "COMMIT_PENDING...";
+
         try {
             await fetch(API_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                mode: "cors",
+                headers: {
+                    "content-type": "application/json" // 소문자 고정으로 CORS 트러블슈팅
+                },
                 body: JSON.stringify({ 
                     ns_pilot_id: document.getElementById('player-id').value, 
                     ns_score: Number(score),
                     ns_updated_at: new Date().toISOString()
                 })
             });
-        } catch(e) { console.error("POST_FAILED"); }
+        } catch(e) { console.error("POST_FAILED", e); }
         location.reload();
     }
 
-    // --- 총알 클래스 복구 ---
+    // --- 총알 엔진 복구 ---
     class Bullet {
         constructor(x, y) {
             this.x = x; this.y = y;
-            this.speed = 7;
+            this.speed = 8;
             this.active = true;
         }
         update() {
             this.y -= this.speed;
-            if (this.y < -10) this.active = false;
+            if (this.y < -20) this.active = false;
         }
         draw() {
             ctx.fillStyle = '#fff';
@@ -120,7 +128,7 @@
         if(!isPlaying) return;
         e.preventDefault();
         player.tx = e.touches[0].clientX;
-        player.ty = e.touches[0].clientY - 50;
+        player.ty = e.touches[0].clientY - 60;
     }, { passive: false });
 
     function render() {
@@ -134,17 +142,17 @@
             ctx.fillStyle = '#fff'; ctx.fillRect(s.x, s.y, s.s, s.s);
         });
 
-        player.x += (player.tx - player.x) * 0.15;
-        player.y += (player.ty - player.y) * 0.15;
+        player.x += (player.tx - player.x) * 0.18;
+        player.y += (player.ty - player.y) * 0.18;
         
         if(assets.player.complete) {
-            ctx.drawImage(assets.player, player.x-35, player.y-35, 70, 70);
+            ctx.drawImage(assets.player, player.x-40, player.y-40, 80, 80);
         } else {
             ctx.fillStyle = '#00ffcc'; ctx.fillRect(player.x-20, player.y-20, 40, 40);
         }
 
-        // 공격 로직 복구 (자동 사격)
-        if (frame % 15 === 0) {
+        // 공격 시스템 (자동 사격)
+        if (frame % 12 === 0) {
             bullets.push(new Bullet(player.x, player.y - 30));
         }
 
@@ -154,15 +162,15 @@
             if (!b.active) bullets.splice(bi, 1);
         });
 
-        if(frame % 55 === 0) enemies.push({ x: Math.random()*width, y: -40 });
+        if(frame % 50 === 0) enemies.push({ x: Math.random()*width, y: -50 });
 
         enemies.forEach((e, ei) => {
-            e.y += 3.5;
+            e.y += 3.8;
             ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 2;
-            ctx.strokeRect(e.x-15, e.y-15, 30, 30);
+            ctx.strokeRect(e.x-20, e.y-20, 40, 40);
             
-            // 플레이어와 충돌
-            if(Math.hypot(e.x-player.x, e.y-player.y) < 40) {
+            // 플레이어 충돌 판정
+            if(Math.hypot(e.x-player.x, e.y-player.y) < 45) {
                 hp -= 10; enemies.splice(ei, 1);
                 document.getElementById('hp-val').innerText = hp;
                 document.getElementById('damage-flash').style.display='block';
@@ -170,9 +178,9 @@
                 if(hp <= 0) endGame();
             }
 
-            // 총알과 충돌 (공격 판정 복구)
+            // 총알 충돌 판정 (공격 복구)
             bullets.forEach((b, bi) => {
-                if (Math.hypot(e.x - b.x, e.y - b.y) < 25) {
+                if (Math.hypot(e.x - b.x, e.y - b.y) < 30) {
                     enemies.splice(ei, 1);
                     bullets.splice(bi, 1);
                     score += 100;
